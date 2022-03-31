@@ -29,7 +29,7 @@ ceq_u_limitcycle = [];
 
 [P, G] = getPoints(x(1:5,:),p);
 c_clearance = -P(10,5:end-5)'+.005;
-% c_clearance = [];
+c_clearance = [];
 
 
 % ceq_torso_vel = P(3,1)-P(3,end);
@@ -42,7 +42,7 @@ c = [c;c_u;c_clearance; c_q4_init; c_foot_foreaft_init];
 
 
 ceq = [];
-% % % ceq = [x(1:5,1)-q0];%
+ceq = [x(1:5,1)-q0];%
 % ceq = q1(1)-q2(1);
 
 % ceq_treadmill = P(3,end)-P(3,1)-.3;

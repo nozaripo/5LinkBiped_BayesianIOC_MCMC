@@ -33,9 +33,9 @@ if nargout == 1   %numerical gradients
     dqpDyn = M\F;  %Numerically invert the mass matrix
     
     ceqPos = qp - qm([5;4;3;2;1]);
-    ceqVel = dqpDyn - dqp;
-    
-    ceqVel = dqm([5;4;3;2;1]) - dqp;
+%     ceqVel = dqpDyn - dqp;
+%     
+%     ceqVel = dqm([5;4;3;2;1]) - dqp;
     ceqVel = [];
     
     ceq = [ceqPos;ceqVel];
