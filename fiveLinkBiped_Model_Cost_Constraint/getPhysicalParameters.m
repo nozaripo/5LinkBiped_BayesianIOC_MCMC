@@ -10,7 +10,7 @@ function p = getPhysicalParameters()
 %%%% MASS
 tibia_mass = 3.2;  %kg;
 femur_mass = 6.8;  %kg
-torso_mass = 20;  %kg
+torso_mass = 30;  %kg
 p.m1 = tibia_mass;
 p.m2 = femur_mass;
 p.m3 = torso_mass;

@@ -29,7 +29,8 @@ ceq_u_limitcycle = [];
 
 [P, G] = getPoints(x(1:5,:),p);
 c_clearance = -P(10,5:end-5)'+.005;
-c_clearance = [];
+c_clearance = -P(10,7)'+.02;
+% c_clearance = [];
 
 
 % ceq_torso_vel = P(3,1)-P(3,end);

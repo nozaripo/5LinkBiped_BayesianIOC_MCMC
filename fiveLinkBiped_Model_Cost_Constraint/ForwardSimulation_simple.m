@@ -1,3 +1,4 @@
+function [xInt, tInt] = ForwardSimulation_simple(W)
 % MAIN.m  --  Five Link Biped trajectory optimization
 %
 % This script sets up and then solves the optimal trajectory for the five
@@ -17,16 +18,16 @@ addpath ../DirectCollocation_OC/
 % % % Cost_Components = importdata('Cost_Comp_Eval.txt');
 % % % St_Dev = std(Cost_Components);
 
-Cost_Components = importdata('Cost_Components_Eval_Fakuchi_AllData_NoDynamics.txt');
-St_Dev = std(Cost_Components);
+% % Cost_Components = importdata('Cost_Components_Eval_Fakuchi_AllData_NoDynamics.txt');
+% % St_Dev = std(Cost_Components);
 
 
-numBasis = size(Cost_Components,2);
+% % numBasis = size(Cost_Components,2);
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up parameters and options                     %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-num_simulation = 5;
+% num_simulation = 5;
 
 param = getPhysicalParameters();
 
@@ -35,11 +36,11 @@ param.stepTime = 0.7;
 
 
 q0 = [...
-    0.2; % stance leg tibia angle
-    0.3; % stance leg femur angle
+    0.25; % stance leg tibia angle
+    0.25; % stance leg femur angle
     0.0; % torso angle
-    -0.2; % swing leg femur angle
-    -0.3]; % swing leg tibia angle
+    -0.25; % swing leg femur angle
+    -0.25]; % swing leg tibia angle
 qF = q0([5;4;3;2;1]);   %Flip left-right
 
 
@@ -48,18 +49,18 @@ qF = q0([5;4;3;2;1]);   %Flip left-right
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 % for i = 1:numBasis
-for i = 1
+% for i = 1
 
-W = zeros(1,numBasis);
-W(1,i) = 1;
+% W = zeros(1,numBasis);
+% W(1,i) = 1;
 
-W = [.2, .5, .3];
+% W = [.2, .5, .3];
 
 problem.func.dynamics =  @(t,x,u)( dynamics(t,x,u,param) );
 
 % problem.func.pathObj = @(t,x,u)( obj_torqueSquared(u) );
 % problem.func.pathObj = @(t,x,u)( composite_objective(t,x,u,param) );
-problem.func.pathObj = @(t,x,u)( composite_objective_weighted_simple(t,x,u,param, W, ones(1,numBasis)) );
+problem.func.pathObj = @(t,x,u)( composite_objective_weighted_simple(t,x,u,param, W, ones(1,3)) );
 
 problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(x0,xF,param) );
 
@@ -99,8 +100,8 @@ problem.bounds.finalState.upp = [qUpp; dqUpp];
 % problem.bounds.finalState.upp = [qF; dqUpp];
 
 % 
-% % problem.bounds.state.low(3) = -.1;
-% % problem.bounds.state.upp(3) = +.1;
+% problem.bounds.state.low(3) = -.1;
+% problem.bounds.state.upp(3) = +.1;
 
 
 uMax = 50;  %Nm
@@ -108,8 +109,8 @@ problem.bounds.control.low = -uMax*ones(5,1);
 problem.bounds.control.upp = uMax*ones(5,1);
 
 % Disable the stance ankle motor:
-% % problem.bounds.control.low(1) = 0;
-% % problem.bounds.control.upp(1) = 0;
+% problem.bounds.control.low(1) = 0;
+% problem.bounds.control.upp(1) = 0;
 % problem.bounds.control.low(3) = -0;
 % problem.bounds.control.upp(3) = 0;
 
@@ -168,9 +169,9 @@ method = 'hermiteSimpson';
 %     'MaxFunEvals',1e6);   %options for fmincon
 
 problem.options(1).nlpOpt = optimset(...
-    'Display','iter',...   % {'iter','final','off'}
+    'Display','final',...   % {'iter','final','off'}
     'TolFun',1e-4,...%TolFun is a lower bound on the change in the value of the objective function during a step
-    'MaxFunEvals',3e5,...
+    'MaxFunEvals',3e4,...
     'TolCon', 1e-6)
 %     'Tolx',1e-6,...   %size smallest step. Smaller step causes optimizer to stop 
 %     'TolCon',1e-3,...
@@ -277,45 +278,46 @@ end
 
 
 
-objVal_th = inf;
+%%
 
-% for j=1:15
-% for j=1:num_simulation
-for j=1:10
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-%                           Solve!                                        %
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-
-i
-j
-
-%%%%% THE KEY LINE:
-tic;
-soln = optimTraj(problem);
-el_t(j)=toc;
-
-
-
-
-t = soln(end).grid.time;
-q = soln(end).grid.state;
-u = soln(end).grid.control;
-
-
-
-
-
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-%                     Plot the solution                                   %
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-
-% Anim.figNum = 1; clf(Anim.figNum);
+% % objVal_th = inf;
+% % 
+% % % for j=1:15
+% % % for j=1:num_simulation
+% % for j=1:1
+% % %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+% % %                           Solve!                                        %
+% % %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+% % 
+% % i
+% % j
+% % 
+% % %%%%% THE KEY LINE:
+% % soln = optimTraj(problem);
+% % 
+% % 
+% % 
+% % 
+% % 
+% % t = soln(end).grid.time;
+% % q = soln(end).grid.state;
+% % u = soln(end).grid.control;
+% % 
+% % 
+% % 
+% % 
+% % 
+% % %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+% % %                     Plot the solution                                   %
+% % %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+% % 
+% % % Anim.figNum = 1; clf(Anim.figNum);
 % % figure(1); clf;
 % % Anim.speed = 0.2;
 % % Anim.plotFunc = @(t,q)( drawRobot(q,param) );
 % % Anim.verbose = true;
 % % animate(t,q,Anim);
-
+% % 
 % % figure(2); clf;
 % % subplot(1,2,1);
 % % plot(t,q);
@@ -334,35 +336,14 @@ u = soln(end).grid.control;
 % %    axis equal
 % %    title('Sparsity pattern in equality constraints')
 % % end
-
-figure(20);
-subplot(1,3,1);
-plot(t,q(1:5,:));
-hold on
-legend('q1','q2','q3','q4','q5');
-xlabel('time')
-ylabel('link angles')
-title('angles')
-subplot(1,3,2);
-plot(t,q(6:10,:));
-hold on
-legend('dq1','dq2','dq3','dq4','dq5');
-xlabel('time')
-ylabel('link angle velocities')
-title('angular velocity')
-subplot(1,3,3);
-plot(t,u);
-legend('u1','u2','u3','u4','u5');
-xlabel('time')
-ylabel('joint torques')
-title('torques')
-hold on
-
-end
+% % 
+% % 
+% % 
+% % end
 
 
 
-end
+
 
 
 
@@ -376,14 +357,14 @@ end
 %                           Solve!                                        %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-
+%%
 objVal_th = inf;
 constraintViolation = .1;
 j=0;
-while constraintViolation>=1e-7
+while constraintViolation>=1e-4
 
 
-%%
+%
 % i
 j = j+1
 
@@ -456,8 +437,7 @@ objectVal    = soln.info.objVal;
 % % % dis_cost = rms(rms(xInt-opt_soln.xInt,2));
 
 
-save('Simulated_.2u^2+.5du^2+.3d3q^2.mat','soln')
-
+end
 
 
 

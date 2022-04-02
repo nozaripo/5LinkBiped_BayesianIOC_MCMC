@@ -5,6 +5,18 @@ function [dObj, dObj_TimeSeries] = composite_objective_weighted_simple(t,x,u,p, 
 % gradients.
 %
 
+%% Test cubic bspline method for differentiation: it is great
+% ddq = diff(dq(1,:)')'/(t(end)/(length(t)-1));
+% ddq1 = [ddq(:,1) ddq];
+% ddq2 = filter(-smooth_diff(4),1,dq(1,:));
+% [~, dq3, ddq3] = Cubic_Bspline(t' , q(1,:)');
+% figure(3)
+% plot([ddq1', ddq3])
+% hold on
+% plot([dq(1,:)', dq3], ":")
+
+
+
 %% KINEMATIC COSTS
 % Joints
 q  = x(1:5,:);
@@ -16,6 +28,11 @@ ddq = [ddq(:,1) ddq];
 dddq = diff(ddq')'/(t(end)/(length(t)-1));
 dddq = [dddq(:,1) dddq];
 
+% % [~, ddq, dddq] = Cubic_Bspline(t' , dq');
+% % ddq = ddq';
+% % dddq= dddq';
+
+% ddq = filter(-smooth_diff(10),1,dq);
 
 
 % Task
@@ -39,6 +56,8 @@ dddq = [dddq(:,1) dddq];
 
 
 % integrands
+
+% Vel_Joint  = sum((dq.^2));
 % Accel_Joint = (sum(ddq.^2));
 Jerk_Joint = (sum(dddq.^2));
 % 
@@ -51,6 +70,11 @@ Jerk_Joint = (sum(dddq.^2));
 %% DYNAMIC COSTS
 du = diff(u')'/(t(end)/(length(t)-1));
 du = [du(:,1) du];
+
+% [~, du, ddu] = Cubic_Bspline(t' , u');
+% du = du';
+% ddu= ddu';
+
 % ddu= diff(du')'/(t(end)/(length(t)-1));
 % ddu= [ddu(:,1) ddu];
 % 
@@ -136,14 +160,24 @@ TorqueRate_Squared       = (sum(du.^2));
 % dObj_TimeSeries = C;
 
 
-% for 3 costs
+%% for 3 costs
 cost_vector = [50* Torque_Squared  ;...                       % torques squared
                 1* TorqueRate_Squared ;...                       % torque rate squared
                 .01* Jerk_Joint];            % Jerk
-                       
+% % cost_vector = [50* Torque_Squared  ;...                       % torques squared
+% %                 1* TorqueRate_Squared ;...                       % torque rate squared
+% %                 5* Vel_Joint];            % Jerk                       
+
 dObj = W*cost_vector;
 
+% % dObj = Torque_Squared + .02*TorqueRate_Squared;
 
+
+
+
+
+
+%%
 % if nargout == 1 % numerical gradients
 %     
 %     dObj = autoGen_obj_torqueSquared(u(1,:),u(2,:),u(3,:),u(4,:),u(5,:));

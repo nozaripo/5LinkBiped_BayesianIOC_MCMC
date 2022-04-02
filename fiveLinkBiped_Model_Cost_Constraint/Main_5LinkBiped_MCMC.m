@@ -10,6 +10,7 @@
 % https://mjlaine.github.io/mcmcstat/
 
 % This also uses parallel processing toolbox in Matlab 
+addpath ../MCMC_IOC/
 
 clear
 clc
@@ -36,11 +37,11 @@ w3_real = .3;
 
 % Load Data from results
 % load('position_4trials_plusnoise.mat')
-load('opt_soln_.2u+.5du+.3d3q.mat')
+data_sol = load('Simulated_.2u^2+.5du^2+.3d3q^2.mat');
 
-t = soln(end).grid.time;
+t = data_sol.soln(end).grid.time;
 opt_tInt   = linspace(t(1),t(end),10*length(t)+1);
-opt_xInt   = soln(end).interp.state(opt_tInt);
+opt_xInt   = data_sol.soln(end).interp.state(opt_tInt);
 
 % find derivative 
 % velocity_noise = zeros(size(position_noise,1),size(position_noise,2)); 
@@ -238,20 +239,20 @@ for i = 1:n_pools
 %         {'w3',   Init_Parameter(3,i),      0, 1,  w3_prior(i),     (w3_var*2)}
 %         };
     
-%     params(:,i) = { 
-%         {'w1',   Init_Parameter(1,i),      lower_bound, upper_bound,  w1_prior(i),     inf} 
-%         {'w2',   Init_Parameter(2,i),      lower_bound, upper_bound,  w2_prior(i),     inf}
-%         {'w3',   Init_Parameter(3,i),      lower_bound, upper_bound,  w3_prior(i),     inf}
-%         };
     params(:,i) = { 
-        {'w1',   Init_Parameter(1,i),      lower_bound, upper_bound,  set_thetamu,     set_thetasig} 
-        {'w2',   Init_Parameter(2,i),      lower_bound, upper_bound,  set_thetamu,     set_thetasig}
-        {'w3',   Init_Parameter(3,i),      lower_bound, upper_bound,  set_thetamu,     set_thetasig}
+        {'w1',   Init_Parameter(1,i),      lower_bound, upper_bound,  w1_prior(i),     inf} 
+        {'w2',   Init_Parameter(2,i),      lower_bound, upper_bound,  w2_prior(i),     inf}
+        {'w3',   Init_Parameter(3,i),      lower_bound, upper_bound,  w3_prior(i),     inf}
         };
+%     params(:,i) = { 
+%         {'w1',   Init_Parameter(1,i),      lower_bound, upper_bound,  set_thetamu,     set_thetasig} 
+%         {'w2',   Init_Parameter(2,i),      lower_bound, upper_bound,  set_thetamu,     set_thetasig}
+%         {'w3',   Init_Parameter(3,i),      lower_bound, upper_bound,  set_thetamu,     set_thetasig}
+%         };
 end
 
 % set up the options for mcmcrun 
-options.nsimu = 200;
+options.nsimu = 100;
 options.stats = 1; 
 options.stats2 = 1; 
 options.waitbar = 0;
@@ -272,7 +273,7 @@ parfor k = 1:n_pools
 end
 
 % Stop the clock
-runtime = toc;
+runtime = toc/3600;
 
 % stop the parallel pools
 % delete(poolobj)
@@ -337,8 +338,8 @@ for i = 1:n_pools
        Draw_Results(k,:,i) = chain(Draw(k),:,i);
 %        y0(k,:,i) = [Draw_Results(k,6,i),Draw_Results(k,7,i)];
 %        [t(:,k),oscillator(:,k*2-1:k*2,i)] = ode15s(@MSD_sys,time,y0(k,:,i),[],Draw_Results(k,:,i));
-       [~,xInt,~,~] = MAIN_composite_new(Draw_Results(k,:,i), data);
-       limb_angles(k*4-3:k*4,:,i) = xInt;
+       [xInt,~] = ForwardSimulation_simple(Draw_Results(k,:,i));
+       limb_angles(k*10-9:k*10,:,i) = xInt;
     end
 end
 
@@ -349,10 +350,10 @@ for i = 1:n_pools
     figure(101)
     subplot(2,2,i)
     for k = 1:n_draws
-        plot(time,limb_angles(k*4-3:k*4-2,:,i),'color',[.17 .17 .17],'LineWidth',1.5)
+        plot(time,limb_angles(k*10-3:k*10-2,:,i),'color',[.17 .17 .17],'LineWidth',1.5)
         hold on 
     end
-    h1 = plot(time,data.xInt(1:2,:),'r--','LineWidth',1.5);
+    h1 = plot(time,data.xInt(1:5,:),'r--','LineWidth',1.5);
     hold on
 %     for k = 2:4
 %          plot(time,position_noise(:,k),'r--','LineWidth',2);
@@ -371,10 +372,10 @@ for i = 1:n_pools
     figure(102)
     subplot(2,2,i)
     for k = 1:n_draws
-        plot(time,limb_angles(k*4-1:k*4,:,i),'color',[.17 .17 .17],'LineWidth',1.5)
+        plot(time,limb_angles(k*10-1:k*10,:,i),'color',[.17 .17 .17],'LineWidth',1.5)
         hold on 
     end
-    h1 = plot(time,data.xInt(3:4,:),'r--','LineWidth',1.5);
+    h1 = plot(time,data.xInt(6:10,:),'r--','LineWidth',1.5);
     hold on
 %     for k = 2:4
 %          plot(time,position_noise(:,k),'r--','LineWidth',2);
@@ -443,9 +444,13 @@ function ss = MSD_SS(theta,data)
 %     end
 %     ss = sum(sumsquare);
 
-theta1 = 1./(1 + exp(-theta));
 
-ss = MAIN_composite_new(theta1, data);
+theta1 = theta;
+% % theta1 = 1./(1 + exp(-theta));
+
+[xInt,~] = ForwardSimulation_simple(theta1);
+
+ss = rms(rms(xInt-data.xInt,2));
 
 
 end
