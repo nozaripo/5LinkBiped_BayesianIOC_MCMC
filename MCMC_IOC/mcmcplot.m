@@ -89,7 +89,8 @@ switch plottype
   ns2 = round(sqrt(np));
   for i=1:np
     h=subplot(ns1,ns2,i);
-    [y,x]=density(chain(:,inds(i)),[],varargin{:});
+%     [y,x]=density(chain(:,inds(i)),[],varargin{:});
+    [y,x]=density(chain(:,inds(i))./chain(:,1)*.2,[],varargin{:});
     plot(x,y,'-k')
 %     set(h,'ytick',[]);
     title(sprintf('%s',names{i}))
@@ -150,10 +151,11 @@ switch plottype
   for i=1:np
     h=subplot(ns1,ns2,i);
     [y,x]=density(chain(:,inds(i)),[],varargin{:});
-%     plot(x,y,'-k');
+    plot(x,y,'-k');
 
-    xlogit = 1./(1+exp(-x));    
-    plot(xlogit,y,'-k')
+%     xlogit = 1./(1+exp(-x));    
+%     plot(xlogit,y,'-k')
+
 %     set(h,'ytick',[]);
     title(sprintf('%s',names{i}))
     set(gca,'fontsize',16)

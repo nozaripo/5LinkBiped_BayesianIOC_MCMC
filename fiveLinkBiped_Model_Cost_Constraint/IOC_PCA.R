@@ -47,13 +47,13 @@ var.explained.spca = matrix(0L, nrow = numSteps, ncol = num.Component)
 #####################
 for (i in seq(0, numSteps, by=1)){
 
-sparsity = 5e-2*i/numSteps
+sparsity = 5e-1*i/numSteps
 
 
 for (nComp in seq(1, num.Component, by=1)){
   
 aa6 = robspca(X, k = nComp, alpha = sparsity, beta = 1e-04, gamma = 100,
-          center = TRUE, scale = TRUE, max_iter = 100000, tol = 1e-05,
+          center = TRUE, scale = TRUE, max_iter = 100000, tol = 1e-04,
           verbose = TRUE)  
 # aa6=spca(X, k = nComp, alpha = sparsity, beta = 1e-04, center = TRUE,
 #          scale = TRUE, max_iter = 3000, tol = 1e-06, verbose = TRUE)
@@ -70,7 +70,7 @@ var.exp.normal = var.explained.spca/max(var.explained.spca)
 
 
 # sp = seq(1e-5, 1e-5+((numSteps-1)/numSteps)*(2e-1 - 1e-5), by=(2e-1 - 1e-5)/numSteps)
-sp = seq(0, ((numSteps-1)/numSteps)*5e-2, by=5e-2/numSteps)
+sp = seq(0, ((numSteps-1)/numSteps)*5e-1, by=5e-1/numSteps)
 
 
 matplot(sp, var.exp.normal, type = "l", lty = 1:1, lwd = .5, pch = NULL,
@@ -115,7 +115,7 @@ for (i in seq(0, numSteps, by=1)){
   sparsity = 5e-2*i/numSteps
   
   aa6 = robspca(X, k = num.Component, alpha = sparsity, beta = 1e-04, gamma = 100,
-                center = TRUE, scale = TRUE, max_iter = 100000, tol = 1e-05,
+                center = TRUE, scale = TRUE, max_iter = 100000, tol = 1e-04,
                 verbose = TRUE)  
   
   for (nComp in seq(1, num.Component, by=1)){

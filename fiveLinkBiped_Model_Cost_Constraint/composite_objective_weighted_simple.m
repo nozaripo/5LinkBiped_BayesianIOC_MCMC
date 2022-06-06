@@ -87,7 +87,7 @@ du = [du(:,1) du];
 
 % integrands
 Torque_Squared           = (sum(u.^2));
-% Torque_Absolute          = sum(abs(u));
+Torque_Absolute          = sum(abs(u));
 TorqueRate_Squared       = (sum(du.^2));
 % TorqueRate_Absolute      = sum(abs(du));
 % TorqueRateChange_Squared = (sum(ddu.^2));
@@ -101,7 +101,7 @@ TorqueRate_Squared       = (sum(du.^2));
 
 % integrands
 % % Work_Absolute = sum(abs(u.*dq));
-% % Work_Positive = sum(max(u.*dq,0));
+Work_Positive = sum(max(u.*dq,0));
 
 % I = [p.I1; p.I2; p.I3; p.I4; p.I5];
 % m = [p.m1; p.m2; p.m3; p.m4; p.m5];
@@ -116,12 +116,12 @@ TorqueRate_Squared       = (sum(du.^2));
 % Kinetic_Energy_Peak = max(Kinetic_Energy);
 % 
 % 
-% Angular_Momentum = (p.I1+p.m1*(p.l1-p.c1)^2)*dq(1,:) + ...
-%                   (p.I2+p.m2*(p.l2-p.c2)^2)*dq(2,:) + ...
-%                   (p.I3+p.m3*(p.l3-p.c3)^2)*dq(3,:) + ... ;   % Kinetic Energy
-%                   (p.I4+p.m4*(p.c4)^2)*dq(4,:) + ...
-%                   (p.I5+p.m5*(p.c5)^2)*dq(5,:) ;
-
+Angular_Momentum = (p.I1+p.m1*(p.l1-p.c1)^2)*dq(1,:) + ...
+                  (p.I2+p.m2*(p.l2-p.c2)^2)*dq(2,:) + ...
+                  (p.I3+p.m3*(p.l3-p.c3)^2)*dq(3,:) + ... ;   % Kinetic Energy
+                  (p.I4+p.m4*(p.c4)^2)*dq(4,:) + ...
+                  (p.I5+p.m5*(p.c5)^2)*dq(5,:) ;
+Angular_Momentum_pk2pk = ones(1,size(q,2))*(max(Angular_Momentum)-min(Angular_Momentum))/t(end);
 %% Composite Objective              
 % dObj = Torque_Squared + TorqueRate_Squared ;
 % 
@@ -161,12 +161,20 @@ TorqueRate_Squared       = (sum(du.^2));
 
 
 %% for 3 costs
-cost_vector = [50* Torque_Squared  ;...                       % torques squared
-                1* TorqueRate_Squared ;...                       % torque rate squared
-                .01* Jerk_Joint];            % Jerk
+% cost_vector = [50* Torque_Squared  ;...                       % torques squared
+%                 1* TorqueRate_Squared ;...                       % torque rate squared
+%                 .01* Jerk_Joint];            % Jerk
 % % cost_vector = [50* Torque_Squared  ;...                       % torques squared
 % %                 1* TorqueRate_Squared ;...                       % torque rate squared
-% %                 5* Vel_Joint];            % Jerk                       
+% %                 5* Vel_Joint];            % Vel                       
+
+cost_vector = [1 * Work_Positive  ;...                       % torques squared
+                1* TorqueRate_Squared ;...                       % torque rate squared
+                .1* Jerk_Joint];            % Jerk
+            
+cost_vector = [10 * TorqueRate_Squared  ;...                       % torques squared
+                100* Torque_Absolute ;...                       % torque rate squared
+                1* Angular_Momentum_pk2pk];            % Jerk
 
 dObj = W*cost_vector;
 

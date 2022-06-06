@@ -41,6 +41,14 @@ q0 = [...
     0.0; % torso angle
     -0.25; % swing leg femur angle
     -0.25]; % swing leg tibia angle
+
+q0 = [...
+    0.2; % stance leg tibia angle
+    0.3; % stance leg femur angle
+    0.0; % torso angle
+    -0.2; % swing leg femur angle
+    -0.3]; % swing leg tibia angle
+
 qF = q0([5;4;3;2;1]);   %Flip left-right
 
 
@@ -104,7 +112,7 @@ problem.bounds.finalState.upp = [qUpp; dqUpp];
 % problem.bounds.state.upp(3) = +.1;
 
 
-uMax = 50;  %Nm
+uMax = 30;  %Nm
 problem.bounds.control.low = -uMax*ones(5,1);
 problem.bounds.control.upp = uMax*ones(5,1);
 
@@ -168,16 +176,25 @@ method = 'hermiteSimpson';
 %     'TolFun',1e-6,...
 %     'MaxFunEvals',1e6);   %options for fmincon
 
+% problem.options(1).nlpOpt = optimset(...
+%     'Display','final',...   % {'iter','final','off'}
+%     'TolFun',1e-4,...%TolFun is a lower bound on the change in the value of the objective function during a step
+%     'MaxFunEvals',3e4,...
+%     'TolCon', 1e-6)
+% %     'Tolx',1e-6,...   %size smallest step. Smaller step causes optimizer to stop 
+% %     'TolCon',1e-3,...
+% %     'DiffMinChange',1e-2,...
+% %     'DiffMaxChange',1e-1)
+% % %     'FinDiffType','Central');   %options for fmincon
+
+
 problem.options(1).nlpOpt = optimset(...
-    'Display','final',...   % {'iter','final','off'}
-    'TolFun',1e-4,...%TolFun is a lower bound on the change in the value of the objective function during a step
-    'MaxFunEvals',3e4,...
-    'TolCon', 1e-6)
-%     'Tolx',1e-6,...   %size smallest step. Smaller step causes optimizer to stop 
-%     'TolCon',1e-3,...
-%     'DiffMinChange',1e-2,...
-%     'DiffMaxChange',1e-1)
-% %     'FinDiffType','Central');   %options for fmincon
+    'Display','iter',...   % {'iter','final','off'}
+    'TolFun',1e-10,...%TolFun is a lower bound on the change in the value of the objective function during a step
+    'MaxFunEvals',3e5,...
+    'TolCon', 1e-6, ...
+    'Tolx',1e-6)
+
 
 switch method
     

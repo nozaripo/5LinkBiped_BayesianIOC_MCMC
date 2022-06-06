@@ -12,6 +12,7 @@
 % clc; clear; 
 addpath ../DirectCollocation_OC/
 
+clear all
 
 
 % % % Cost_Components = importdata('Cost_Comp_Eval.txt');
@@ -103,7 +104,7 @@ problem.bounds.finalState.upp = [qUpp; dqUpp];
 % % problem.bounds.state.upp(3) = +.1;
 
 
-uMax = 50;  %Nm
+uMax = 30;  %Nm
 problem.bounds.control.low = -uMax*ones(5,1);
 problem.bounds.control.upp = uMax*ones(5,1);
 
@@ -169,10 +170,10 @@ method = 'hermiteSimpson';
 
 problem.options(1).nlpOpt = optimset(...
     'Display','iter',...   % {'iter','final','off'}
-    'TolFun',1e-4,...%TolFun is a lower bound on the change in the value of the objective function during a step
+    'TolFun',1e-10,...%TolFun is a lower bound on the change in the value of the objective function during a step
     'MaxFunEvals',3e5,...
-    'TolCon', 1e-6)
-%     'Tolx',1e-6,...   %size smallest step. Smaller step causes optimizer to stop 
+    'TolCon', 1e-6, ...
+    'Tolx',1e-6)   %size smallest step. Smaller step causes optimizer to stop 
 %     'TolCon',1e-3,...
 %     'DiffMinChange',1e-2,...
 %     'DiffMaxChange',1e-1)
@@ -309,12 +310,12 @@ u = soln(end).grid.control;
 %                     Plot the solution                                   %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-% Anim.figNum = 1; clf(Anim.figNum);
-% % figure(1); clf;
-% % Anim.speed = 0.2;
-% % Anim.plotFunc = @(t,q)( drawRobot(q,param) );
-% % Anim.verbose = true;
-% % animate(t,q,Anim);
+% % Anim.figNum = 1; clf(Anim.figNum);
+% figure(1); clf;
+% Anim.speed = 0.2;
+% Anim.plotFunc = @(t,q)( drawRobot(q,param) );
+% Anim.verbose = true;
+% animate(t,q,Anim);
 
 % % figure(2); clf;
 % % subplot(1,2,1);
@@ -366,7 +367,11 @@ end
 
 
 
-
+% Anim.figNum = 1; clf(Anim.figNum);
+Anim.speed = 0.2;
+Anim.plotFunc = @(t,q)( drawRobot(q,param) );
+Anim.verbose = true;
+animate(t,q,Anim);
 
 
 
@@ -456,11 +461,12 @@ objectVal    = soln.info.objVal;
 % % % dis_cost = rms(rms(xInt-opt_soln.xInt,2));
 
 
-save('Simulated_.2u^2+.5du^2+.3d3q^2.mat','soln')
+% save('Simulated_.2u^2+.5du^2+.3d3q^2.mat','soln')
 
 
+% % save('Simulated_.2dq*u+.5du^2+.3d3q^2.mat','soln')
 
-
+save('Simulated_.2du^2+.5u+.3AM.mat','soln')
 
 
 

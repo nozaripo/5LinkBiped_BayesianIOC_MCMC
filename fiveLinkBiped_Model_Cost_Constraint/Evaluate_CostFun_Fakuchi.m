@@ -615,7 +615,7 @@ No_Speed= 8;
 ID_Eval = 0;
 Tr_or_Ov =['T','O'];
 ID_Subj_actual = 0;
-for ID_Subj = 1:1
+for ID_Subj = 1:42
     if ID_Subj~=[5, 17, 41,  10, 15, 36, 39, 24, 26, 40, 42]
         ID_Subj_actual = ID_Subj_actual+1;
     cycle_stack_id = 0;
@@ -844,7 +844,7 @@ for ID_Subj = 1:1
                  
                  
                  
-%                 t_resamp = linspace(0,t(end),50);
+                t_resamp = linspace(0,t(end),50);
                 
                 % % % % l_hip   = lowpass(l_hip,6,100);
                 % % % % r_hip   = lowpass(r_hip,6,100);

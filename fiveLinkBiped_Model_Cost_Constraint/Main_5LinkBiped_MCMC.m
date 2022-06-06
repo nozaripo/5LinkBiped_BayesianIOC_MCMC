@@ -37,7 +37,10 @@ w3_real = .3;
 
 % Load Data from results
 % load('position_4trials_plusnoise.mat')
-data_sol = load('Simulated_.2u^2+.5du^2+.3d3q^2.mat');
+% data_sol = load('Simulated_.2u^2+.5du^2+.3d3q^2.mat');
+data_sol = load('Simulated_.2dq.u+.5du^2+.3d3q^2.mat');
+
+data_sol = load('Simulated_.2du^2+.5u+.3AM.mat');
 
 t = data_sol.soln(end).grid.time;
 opt_tInt   = linspace(t(1),t(end),10*length(t)+1);
@@ -91,9 +94,9 @@ n_params = 3;
 % x0_var    = 0.05; 
 % xdot0_var = 0.20;
 
-w1_var = .5;
-w2_var = .5;
-w3_var = .5;
+w1_var = .2;
+w2_var = .2;
+w3_var = .2;
 
 
 % this adds 10% noise to the prior center
@@ -101,9 +104,10 @@ w3_var = .5;
 % prior_noise  = 0.1; 
 
 prior_center = (randn(n_params,n_pools));
-prior_noise  = .1; 
+prior_noise  = .3; 
 
 center_shift = .3;
+init_center = .5;
 
 % m_prior = zeros(n_pools); 
 % c_prior = zeros(n_pools); 
@@ -127,9 +131,14 @@ for j = 1:n_pools
 %     x0_prior(j) = x0_real + (prior_center(6,j) * (x0_var*prior_noise));
 %     xdot0_prior(j) = xdot0_real  + (prior_center(7,j) * (xdot0_var*prior_noise)); % can't multiply by 0
     
-    w1_prior(j) = w1_real + center_shift + (prior_center(1,j) * (w1_var*prior_noise));
-    w2_prior(j) = w2_real + center_shift + (prior_center(2,j) * (w2_var*prior_noise));
-    w3_prior(j) = w3_real + center_shift + (prior_center(3,j) * (w3_var*prior_noise));
+% %     w1_prior(j) = w1_real + center_shift + (prior_center(1,j) * (w1_var*prior_noise));
+% %     w2_prior(j) = w2_real + center_shift + (prior_center(2,j) * (w2_var*prior_noise));
+% %     w3_prior(j) = w3_real + center_shift + (prior_center(3,j) * (w3_var*prior_noise));
+    
+    
+    w1_prior(j) = init_center + (prior_center(1,j) * (w1_var*prior_noise));
+    w2_prior(j) = init_center + (prior_center(2,j) * (w2_var*prior_noise));
+    w3_prior(j) = init_center + (prior_center(3,j) * (w3_var*prior_noise)); 
     
 %     w1_prior(j) = unifrnd(0,1);
 %     w2_prior(j) = unifrnd(0,1);
@@ -208,6 +217,7 @@ titles = ["w1", "w2", "w3"];
 set_thetamu = 0; 
 set_thetasig = 0.2;
 set_thetasig = 5;
+set_thetasig = .5;
 
 Init_Parameter = zeros(n_params,n_pools);
 Init_Parameter(:,1) = ones(1,3).*-1;
@@ -218,8 +228,8 @@ end
 
 lower_bound = 0; % set lower bound for amplitudes 
 upper_bound = 1; % set upper bound for amplitudes 
-lower_bound = -30; % set lower bound for amplitudes 
-upper_bound = 30; % set upper bound for amplitudes 
+% lower_bound = -30; % set lower bound for amplitudes 
+% upper_bound = 30; % set upper bound for amplitudes 
 
 params = cell(n_params,n_pools); 
 for i = 1:n_pools
@@ -324,7 +334,7 @@ end
 
 % do 10 random draws from each chain, then plot the results to see how
 % the results fit the data
-n_draws = 20; 
+n_draws = 15; 
 Draw = zeros(n_draws); 
 Draw_Results = zeros(n_draws,n_params); 
 % y0 = zeros(n_draws,2,n_pools); 
@@ -350,7 +360,7 @@ for i = 1:n_pools
     figure(101)
     subplot(2,2,i)
     for k = 1:n_draws
-        plot(time,limb_angles(k*10-3:k*10-2,:,i),'color',[.17 .17 .17],'LineWidth',1.5)
+        plot(time,limb_angles(k*10-9:k*10-5,:,i),'color',[.17 .17 .17],'LineWidth',1.5)
         hold on 
     end
     h1 = plot(time,data.xInt(1:5,:),'r--','LineWidth',1.5);
@@ -372,7 +382,7 @@ for i = 1:n_pools
     figure(102)
     subplot(2,2,i)
     for k = 1:n_draws
-        plot(time,limb_angles(k*10-1:k*10,:,i),'color',[.17 .17 .17],'LineWidth',1.5)
+        plot(time,limb_angles(k*10-6:k*10,:,i),'color',[.17 .17 .17],'LineWidth',1.5)
         hold on 
     end
     h1 = plot(time,data.xInt(6:10,:),'r--','LineWidth',1.5);
@@ -421,7 +431,7 @@ memAfter = user.MemUsedMATLAB;
 
 % display some stuff about the MCMC run
 disp('========================== ' )
-disp(['elapsed time = ' num2str(runtime/60) ' min'])
+disp(['Elapsed Time = ' num2str(floor(runtime)) ' hr(s) & ' num2str(floor((runtime-floor(runtime))*60)) ' mins'])
 disp(['change in Matlab memory use = ' num2str((memAfter - memBefore)/1e6) ' MB'])
 disp('   ')
 
