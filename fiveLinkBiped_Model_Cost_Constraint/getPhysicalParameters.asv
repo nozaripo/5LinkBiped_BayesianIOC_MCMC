@@ -24,7 +24,7 @@ tibia_inertia = 0.93;  %kg-m^2
 femur_inertia = 1.08;  %kg-m^2
 torso_inertia = 2.22;  %kg-m^2
 torso_inertia = 1.22;  %kg-m^2
-torso_inertia = 0;  %kg-m^2
+% torso_inertia = 0;  %kg-m^2
 p.I1 = tibia_inertia;
 p.I2 = femur_inertia;
 p.I3 = torso_inertia;
@@ -42,9 +42,10 @@ p.l4 = femur_length;
 p.l5 = tibia_length;
 
 %%%% DISTANCE (parent joint to CoM)
-tibia_dist = 0.18;  %m
-femur_dist = 0.17;  %m
-torso_dist = 0.25;  %m
+tibia_dist = 0.2;  %m
+femur_dist = 0.163;  %m
+torso_dist = 0.2;  %m
+torso_dist = 0.25;
 p.c1 = tibia_dist;
 p.c2 = femur_dist;
 p.c3 = torso_dist;

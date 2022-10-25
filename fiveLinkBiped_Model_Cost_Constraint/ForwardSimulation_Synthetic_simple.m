@@ -13,6 +13,14 @@
 addpath ../DirectCollocation_OC/
 
 clear all
+V_treadmill = 1.0;
+
+V_Treadmill_Array = [.4, .7, 1.0, 1.2, 1.4, 1.6];
+soln_map = containers.Map('KeyType','double','ValueType','any');
+
+
+for i_v=1:length(V_Treadmill_Array)% comment when you would want to run a single optim
+V_treadmill = V_Treadmill_Array(i_v);% comment when you would want to run a single optim
 
 
 % % % Cost_Components = importdata('Cost_Comp_Eval.txt');
@@ -27,7 +35,7 @@ numBasis = size(Cost_Components,2);
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set up parameters and options                     %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-num_simulation = 5;
+% num_simulation = 5;
 
 param = getPhysicalParameters();
 
@@ -41,6 +49,14 @@ q0 = [...
     0.0; % torso angle
     -0.2; % swing leg femur angle
     -0.3]; % swing leg tibia angle
+
+q0 = [...
+    0.25; % stance leg tibia angle
+    0.35; % stance leg femur angle
+    0.0; % torso angle
+    -0.20; % swing leg femur angle
+    -0.3]; % swing leg tibia angle
+
 qF = q0([5;4;3;2;1]);   %Flip left-right
 
 
@@ -64,7 +80,7 @@ problem.func.pathObj = @(t,x,u)( composite_objective_weighted_simple(t,x,u,param
 
 problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(x0,xF,param) );
 
-problem.func.pathCst = @(t,x,u)( pathConstraint(x,u,q0,param) );
+problem.func.pathCst = @(t,x,u)( pathConstraint(t,x,u,q0,param, V_treadmill) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -72,8 +88,8 @@ problem.func.pathCst = @(t,x,u)( pathConstraint(x,u,q0,param) );
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 problem.bounds.initialTime.low = 0;
 problem.bounds.initialTime.upp = 0;
-problem.bounds.finalTime.low = param.stepTime-.25;
-problem.bounds.finalTime.upp = param.stepTime-.25;
+problem.bounds.finalTime.low = param.stepTime-.35;
+problem.bounds.finalTime.upp = param.stepTime;
 
 % State: (absolute reference frames)
 %   1 = stance leg tibia angle
@@ -82,8 +98,8 @@ problem.bounds.finalTime.upp = param.stepTime-.25;
 %   4 = swing leg femur angle
 %   5 = swing leg tibia angle
 
-qLow = (-pi/2)*ones(5,1);
-qUpp = (pi/2)*ones(5,1);
+qLow = (-pi/4)*ones(5,1);
+qUpp = (pi/3)*ones(5,1);
 dqLow = -10*ones(5,1);
 dqUpp = 10*ones(5,1);
 problem.bounds.state.low = [qLow; dqLow];
@@ -282,7 +298,7 @@ objVal_th = inf;
 
 % for j=1:15
 % for j=1:num_simulation
-for j=1:10
+for j=1:1
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                           Solve!                                        %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -292,15 +308,15 @@ j
 
 %%%%% THE KEY LINE:
 tic;
-soln = optimTraj(problem);
-el_t(j)=toc;
+% soln = optimTraj(problem);
+% el_t(j)=toc;
 
 
 
 
-t = soln(end).grid.time;
-q = soln(end).grid.state;
-u = soln(end).grid.control;
+% t = soln(end).grid.time;
+% q = soln(end).grid.state;
+% u = soln(end).grid.control;
 
 
 
@@ -336,28 +352,28 @@ u = soln(end).grid.control;
 % %    title('Sparsity pattern in equality constraints')
 % % end
 
-figure(20);
-subplot(1,3,1);
-plot(t,q(1:5,:));
-hold on
-legend('q1','q2','q3','q4','q5');
-xlabel('time')
-ylabel('link angles')
-title('angles')
-subplot(1,3,2);
-plot(t,q(6:10,:));
-hold on
-legend('dq1','dq2','dq3','dq4','dq5');
-xlabel('time')
-ylabel('link angle velocities')
-title('angular velocity')
-subplot(1,3,3);
-plot(t,u);
-legend('u1','u2','u3','u4','u5');
-xlabel('time')
-ylabel('joint torques')
-title('torques')
-hold on
+% figure(20);
+% subplot(1,3,1);
+% plot(t,q(1:5,:));
+% hold on
+% legend('q1','q2','q3','q4','q5');
+% xlabel('time')
+% ylabel('link angles')
+% title('angles')
+% subplot(1,3,2);
+% plot(t,q(6:10,:));
+% hold on
+% legend('dq1','dq2','dq3','dq4','dq5');
+% xlabel('time')
+% ylabel('link angle velocities')
+% title('angular velocity')
+% subplot(1,3,3);
+% plot(t,u);
+% legend('u1','u2','u3','u4','u5');
+% xlabel('time')
+% ylabel('joint torques')
+% title('torques')
+% hold on
 
 end
 
@@ -368,10 +384,10 @@ end
 
 
 % Anim.figNum = 1; clf(Anim.figNum);
-Anim.speed = 0.2;
-Anim.plotFunc = @(t,q)( drawRobot(q,param) );
-Anim.verbose = true;
-animate(t,q,Anim);
+% Anim.speed = 0.2;
+% Anim.plotFunc = @(t,q)( drawRobot(t,q,param, V_treadmill) );
+% Anim.verbose = true;
+% animate(t,q,Anim);
 
 
 
@@ -384,24 +400,27 @@ animate(t,q,Anim);
 
 objVal_th = inf;
 constraintViolation = .1;
-j=0;
-while constraintViolation>=1e-7
+firstorderopt = inf;
+% j=0;
+while constraintViolation>=1e-7 || firstorderopt>.1
 
 
 %%
 % i
-j = j+1
+% j = j+1
 
 %%%%% THE KEY LINE:
 soln = optimTraj(problem);
 
 constraintViolation = soln.info.constrviolation;
+firstorderopt = soln.info.firstorderopt;
 costEval    = soln.info.objVal;
 
 t = soln(end).grid.time;
 tInt   = linspace(t(1),t(end),10*length(t)+1);
 xInt   = soln(end).interp.state(tInt);
 
+q = soln(end).grid.state;
 % if constraintViolation < 1e-6
 
 %     Transcription Grid points:
@@ -410,7 +429,11 @@ xInt   = soln(end).interp.state(tInt);
 % % q2 = soln(end).grid.state(2,:);
 % % dq1 = soln(end).grid.state(3,:);
 % % dq2 = soln(end).grid.state(4,:);
-% % u = soln(end).grid.control;
+u = soln(end).grid.control;
+
+
+
+
 % 
 % 
 % 
@@ -452,8 +475,54 @@ xInt   = soln(end).interp.state(tInt);
 % end
 
 end
+
+figure(20);
+subplot(3,1,1);
+plot(t,q(1:5,:), 'LineWidth', 1.2);
+% patchline(t',q(1:5,:)', 'LineWidth', 1.2, 'edgealpha',.5 + i_v/2/length(V_Treadmill_Array));
+hold on
+legend('q1','q2','q3','q4','q5');
+xlabel('time')
+ylabel('link angles')
+title('angles')
+subplot(3,1,2);
+plot(t,q(1:5,:), 'LineWidth', 1.2);
+% patchline(t',q(6:10,:)', 'LineWidth', 1.2, 'edgealpha',.5 + i_v/2/length(V_Treadmill_Array));
+hold on
+legend('dq1','dq2','dq3','dq4','dq5');
+xlabel('time')
+ylabel('link angle velocities')
+title('angular velocity')
+subplot(3,1,3);
+plot(t,u, 'LineWidth', 1.2);
+% patchline(t',u', 'LineWidth', 1.2, 'edgealpha',.5 + i_v/2/length(V_Treadmill_Array));
+legend('u1','u2','u3','u4','u5');
+xlabel('time')
+ylabel('joint torques')
+title('torques')
+hold on
+
+
+Anim.speed = 0.2;
+Anim.plotFunc = @(t,q)( drawRobot(t,q,param, V_treadmill) );
+Anim.verbose = true;
+animate(t,q,Anim);
+
 constviol    = soln.info.constrviolation;
 objectVal    = soln.info.objVal;
+
+
+
+soln_map(V_treadmill) = soln; % comment when you would want to run a single optim
+end % comment when you would want to run a single optim 
+
+save('Simulated_Speeds_.2dq.u+.5du^2+.3d3q^2.mat','soln_map')
+
+
+% Anim.speed = 0.2;
+% Anim.plotFunc = @(t,q)( drawRobot(t,q,param, V_treadmill) );
+% Anim.verbose = true;
+% animate(t,q,Anim);
 
 % dis_cost = norm(q1-opt_soln.q1Int) + norm(q2-opt_soln.q2Int)+...
 %             norm(dq1-opt_soln.dq1Int) + norm(dq2-opt_soln.dq2Int);
@@ -465,8 +534,8 @@ objectVal    = soln.info.objVal;
 
 
 % % save('Simulated_.2dq*u+.5du^2+.3d3q^2.mat','soln')
-
-save('Simulated_.2du^2+.5u+.3AM.mat','soln')
+%% 
+% save('Simulated_.2du^2+.5u+.3AM.mat','soln')
 
 
 

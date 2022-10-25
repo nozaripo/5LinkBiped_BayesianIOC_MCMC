@@ -161,9 +161,9 @@ Angular_Momentum_pk2pk = ones(1,size(q,2))*(max(Angular_Momentum)-min(Angular_Mo
 
 
 %% for 3 costs
-% cost_vector = [50* Torque_Squared  ;...                       % torques squared
-%                 1* TorqueRate_Squared ;...                       % torque rate squared
-%                 .01* Jerk_Joint];            % Jerk
+cost_vector = [50* Torque_Squared  ;...                       % torques squared
+                1* TorqueRate_Squared ;...                       % torque rate squared
+                .01* Jerk_Joint];            % Jerk
 % % cost_vector = [50* Torque_Squared  ;...                       % torques squared
 % %                 1* TorqueRate_Squared ;...                       % torque rate squared
 % %                 5* Vel_Joint];            % Vel                       
@@ -172,11 +172,11 @@ cost_vector = [1 * Work_Positive  ;...                       % torques squared
                 1* TorqueRate_Squared ;...                       % torque rate squared
                 .1* Jerk_Joint];            % Jerk
             
-cost_vector = [10 * TorqueRate_Squared  ;...                       % torques squared
-                100* Torque_Absolute ;...                       % torque rate squared
-                1* Angular_Momentum_pk2pk];            % Jerk
+% cost_vector = [10 * TorqueRate_Squared  ;...                       % torques squared
+%                 100* Torque_Absolute ;...                       % torque rate squared
+%                 1* Angular_Momentum_pk2pk];            % Jerk
 
-dObj = W*cost_vector;
+dObj = W*cost_vector / t(end);
 
 % % dObj = Torque_Squared + .02*TorqueRate_Squared;
 

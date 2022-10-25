@@ -1,4 +1,4 @@
-function [xInt, tInt] = ForwardSimulation_simple(W)
+function [xInt, tInt] = ForwardSimulation_simple(W, V_Treadmill_Array)
 % MAIN.m  --  Five Link Biped trajectory optimization
 %
 % This script sets up and then solves the optimal trajectory for the five
@@ -11,7 +11,7 @@ function [xInt, tInt] = ForwardSimulation_simple(W)
 %
 
 % clc; clear; 
-addpath ../DirectCollocation_OC/
+% addpath ../DirectCollocation_OC/
 
 
 
@@ -64,6 +64,9 @@ qF = q0([5;4;3;2;1]);   %Flip left-right
 
 % W = [.2, .5, .3];
 
+for i_v=1:length(V_Treadmill_Array)% comment when you would want to run a single optim
+V_treadmill = V_Treadmill_Array(i_v);% comment when you would want to run a single optim
+
 problem.func.dynamics =  @(t,x,u)( dynamics(t,x,u,param) );
 
 % problem.func.pathObj = @(t,x,u)( obj_torqueSquared(u) );
@@ -72,7 +75,7 @@ problem.func.pathObj = @(t,x,u)( composite_objective_weighted_simple(t,x,u,param
 
 problem.func.bndCst = @(t0,x0,tF,xF)( stepConstraint(x0,xF,param) );
 
-problem.func.pathCst = @(t,x,u)( pathConstraint(x,u,q0,param) );
+problem.func.pathCst = @(t,x,u)( pathConstraint(t,x,u,q0,param, V_treadmill) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -80,8 +83,8 @@ problem.func.pathCst = @(t,x,u)( pathConstraint(x,u,q0,param) );
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 problem.bounds.initialTime.low = 0;
 problem.bounds.initialTime.upp = 0;
-problem.bounds.finalTime.low = param.stepTime-.25;
-problem.bounds.finalTime.upp = param.stepTime-.25;
+problem.bounds.finalTime.low = param.stepTime-.35;
+problem.bounds.finalTime.upp = param.stepTime;
 
 % State: (absolute reference frames)
 %   1 = stance leg tibia angle
@@ -90,8 +93,8 @@ problem.bounds.finalTime.upp = param.stepTime-.25;
 %   4 = swing leg femur angle
 %   5 = swing leg tibia angle
 
-qLow = (-pi/2)*ones(5,1);
-qUpp = (pi/2)*ones(5,1);
+qLow = (-pi/4)*ones(5,1);
+qUpp = (pi/3)*ones(5,1);
 dqLow = -10*ones(5,1);
 dqUpp = 10*ones(5,1);
 problem.bounds.state.low = [qLow; dqLow];
@@ -112,7 +115,7 @@ problem.bounds.finalState.upp = [qUpp; dqUpp];
 % problem.bounds.state.upp(3) = +.1;
 
 
-uMax = 50;  %Nm
+uMax = 30;  %Nm
 problem.bounds.control.low = -uMax*ones(5,1);
 problem.bounds.control.upp = uMax*ones(5,1);
 
@@ -175,17 +178,26 @@ method = 'hermiteSimpson';
 %     'Display','iter',...   % {'iter','final','off'}
 %     'TolFun',1e-6,...
 %     'MaxFunEvals',1e6);   %options for fmincon
+% 
+% problem.options(1).nlpOpt = optimset(...
+%     'Display','final',...   % {'iter','final','off'}
+%     'TolFun',1e-4,...%TolFun is a lower bound on the change in the value of the objective function during a step
+%     'MaxFunEvals',3e4,...
+%     'TolCon', 1e-6)
+% %     'Tolx',1e-6,...   %size smallest step. Smaller step causes optimizer to stop 
+% %     'TolCon',1e-3,...
+% %     'DiffMinChange',1e-2,...
+% %     'DiffMaxChange',1e-1)
+% % %     'FinDiffType','Central');   %options for fmincon
+
 
 problem.options(1).nlpOpt = optimset(...
     'Display','final',...   % {'iter','final','off'}
-    'TolFun',1e-4,...%TolFun is a lower bound on the change in the value of the objective function during a step
-    'MaxFunEvals',3e4,...
-    'TolCon', 1e-6)
-%     'Tolx',1e-6,...   %size smallest step. Smaller step causes optimizer to stop 
-%     'TolCon',1e-3,...
-%     'DiffMinChange',1e-2,...
-%     'DiffMaxChange',1e-1)
-% %     'FinDiffType','Central');   %options for fmincon
+    'TolFun',1e-10,...%TolFun is a lower bound on the change in the value of the objective function during a step
+    'MaxFunEvals',3e5,...
+    'TolCon', 1e-6, ...
+    'Tolx',1e-6)
+
 
 switch method
     
@@ -366,10 +378,16 @@ end
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 %%
+
+
+
+
 objVal_th = inf;
 constraintViolation = .1;
 j=0;
-while constraintViolation>=1e-4
+firstorderopt = inf;
+
+while constraintViolation>=1e-5 || firstorderopt>.1
 
 
 %
@@ -381,10 +399,10 @@ soln = optimTraj(problem);
 
 constraintViolation = soln.info.constrviolation;
 costEval    = soln.info.objVal;
-
-t = soln(end).grid.time;
-tInt   = linspace(t(1),t(end),10*length(t)+1);
-xInt   = soln(end).interp.state(tInt);
+firstorderopt = soln.info.firstorderopt;
+% t = soln(end).grid.time;
+% tInt   = linspace(t(1),t(end),10*length(t)+1);
+% xInt(:,:,i_v)   = soln(end).interp.state(tInt);
 
 % if constraintViolation < 1e-6
 
@@ -439,12 +457,17 @@ end
 constviol    = soln.info.constrviolation;
 objectVal    = soln.info.objVal;
 
+t = soln(end).grid.time;
+tInt(:,:,i_v)   = linspace(t(1),t(end),10*length(t)+1);
+xInt(:,:,i_v)   = soln(end).interp.state(tInt(:,:,i_v));
+
 % dis_cost = norm(q1-opt_soln.q1Int) + norm(q2-opt_soln.q2Int)+...
 %             norm(dq1-opt_soln.dq1Int) + norm(dq2-opt_soln.dq2Int);
 
 % % % dis_cost = rms(rms(xInt-opt_soln.xInt,2));
 
 
+end
 end
 
 

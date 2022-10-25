@@ -98,6 +98,6 @@ text(0,-.15, ['Time = ', num2str(t, '%.3f'), ' s'], 'FontSize', 13, 'HorizontalA
 % Format the axis:
 axis([[-1 1],yBnd]); axis equal; axis off;
 
-ylim([-.05 1.6])
+ylim([-.05 1.7])
 xlim([-1 1])
 end

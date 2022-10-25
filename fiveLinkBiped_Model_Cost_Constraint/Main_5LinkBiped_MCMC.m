@@ -11,6 +11,7 @@
 
 % This also uses parallel processing toolbox in Matlab 
 addpath ../MCMC_IOC/
+addpath ../DirectCollocation_OC/
 
 clear
 clc
@@ -63,6 +64,18 @@ time = 0:0.05:20;
 data.xInt = opt_xInt;
 data.tInt = opt_tInt;
 
+
+%% Set up data for different speeds
+data_sol = load('Simulated_Speeds_.2dq.u+.5du^2+.3d3q^2.mat');
+
+V_Treadmill_Array = cell2mat(data_sol.soln_map.keys);
+
+for i_v = 1:length(V_Treadmill_Array)
+    t = data_sol.soln_map(V_Treadmill_Array(i_v)).grid.time;
+    data.tInt(:,:,i_v) = linspace(t(1),t(end),10*length(t)+1);
+    data.xInt(:,:,i_v) = data_sol.soln_map(V_Treadmill_Array(i_v)).interp.state(data.tInt(:,:,i_v));
+end
+data.V_Treadmill_Array = V_Treadmill_Array;
 %% Create Model
 
 model.ssfun = @MSD_SS;
@@ -262,7 +275,7 @@ for i = 1:n_pools
 end
 
 % set up the options for mcmcrun 
-options.nsimu = 100;
+options.nsimu = 200;
 options.stats = 1; 
 options.stats2 = 1; 
 options.waitbar = 0;
@@ -283,7 +296,7 @@ parfor k = 1:n_pools
 end
 
 % Stop the clock
-runtime = toc/3600;
+runtime = toc/3600
 
 % stop the parallel pools
 % delete(poolobj)
@@ -437,7 +450,7 @@ disp('   ')
 
 %% End of main function, begin other functions
 
-function ss = MSD_SS(theta,data)
+function ss = MSD_SS(W,data)
     % sum of squares function for the posterior probability 
 
 %     time   = data.xdata;
@@ -455,12 +468,14 @@ function ss = MSD_SS(theta,data)
 %     ss = sum(sumsquare);
 
 
-theta1 = theta;
-% % theta1 = 1./(1 + exp(-theta));
+W1 = W;
+% % W1 = 1./(1 + exp(-W));
 
-[xInt,~] = ForwardSimulation_simple(theta1);
+% [xInt,~] = ForwardSimulation_simple(W1);
+[xInt,tInt] = ForwardSimulation_Speeds_simple(W1, data.V_Treadmill_Array);
 
-ss = rms(rms(xInt-data.xInt,2));
+% ss = rms(rms(xInt-data.xInt,2));
+ss = sum(sum(rms(xInt - data.xInt,2))) + 10*(norm( tInt(end) - data.tInt(end) ));
 
 
 end
