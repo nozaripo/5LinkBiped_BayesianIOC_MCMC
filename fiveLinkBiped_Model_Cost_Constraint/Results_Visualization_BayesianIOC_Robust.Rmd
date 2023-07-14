@@ -1,0 +1,645 @@
+---
+title: "BayesianIOC_Visualization"
+author: "Pouria"
+date: "1/13/2023"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Packages
+
+```{r}
+# install.packages("R.matlab")
+# devtools::install_github("wilkelab/ungeviz", force=TRUE)
+# install.packages("ggridges")
+library(R.matlab)
+library(tidyr)
+library(magrittr)
+library(ggplot2)
+library(ungeviz)
+library(ggridges)
+library(ggpubr)
+library(rstatix)
+library(dplyr)
+library(forcats)
+library(broom)
+# install.packages("ggbeeswarm")
+library(ggbeeswarm)
+```
+
+
+## Read the matlab file for Bayesian results
+
+```{r}
+matfile = readMat('Results_BayesianIOC_2023-03-13.mat')
+
+Criteria.Names = c('1. Angular Acceleration', '2. Angular Jerk', '3. Linear Acceleration', '4. Linear Jerk',
+    '5. Torque Squared', '6. Absolute Torque', '7. Torque Rate Squared', '8. Absolute Torque Rate', '9. Torque 2nd Rate Squared',
+    '10. Absolute Torque 2nd Rate', '11. yGRF Rate', '12. xGRF Rate',
+    '13. Positive Work Rate', '14. Absolute Work Rate', '15. Kinetic Energy', '16. Pk-to-pk Angular Momentum')
+
+chain        = matfile$chain.Select
+x_density        = matfile$x.density.Select
+Cost      = matfile$Cost.ID.Select
+True_Weights = matfile$True.Weights.Select
+Weight   = matfile$Weight.ID.Select
+Subject   = matfile$Subject.ID.Select
+Inference = matfile$Inference.ID.Select
+KS_Stat      = matfile$KS.Stat.Select
+Median_Dist  = matfile$Median.Dist.Select
+KS_Stat_Gaus      = matfile$KS.Stat.Gaus.Select
+Median_Dist_Gaus  = matfile$Median.Dist.Gaus.Select
+KS_Stat_Indiv  = matfile$KS.Stat.Individual.Select
+Median_Dist_Indiv  = matfile$Median.Dist.Individual.Select
+
+
+
+tbl = data.frame(chain, Cost, True_Weights, Weight, Subject, Inference, KS_Stat, Median_Dist, KS_Stat_Gaus, Median_Dist_Gaus, x_density, KS_Stat_Indiv, Median_Dist_Indiv) %>%
+  mutate(Cost = factor(Cost, levels=1:16, labels=Criteria.Names),
+         Inference = factor(Inference, labels=c("Naïve Inference", "Featured-Reduced")))
+
+for (i in 1:length(chain)) {
+  tbl$Weight_KS [i] = gsub(" ", " ", paste("Simulation", Weight[i], ",  KS-Stat=", round(KS_Stat[i],2)))
+  tbl$Weight [i] = gsub(" ", " ", paste("Weight Set", Weight[i]))
+  tbl$WeightSet_No [i] = Weight[i]
+}
+
+tbl_summary_stat <- tbl %>% group_by(Inference,Subject,Weight) %>%
+  summarize( KS_Stat = mean(KS_Stat), KS_Stat_Gaus = mean(KS_Stat_Gaus),
+            Median_Dist = mean(Median_Dist), Median_Dist_Gaus = mean(Median_Dist_Gaus),
+            KS_Stat_Indiv = KS_Stat_Indiv, Median_Dist_Indiv = Median_Dist_Indiv
+            )
+
+tbl_summary_bxplot <- tbl %>% group_by(Inference,Subject,WeightSet_No) %>%
+  summarize( KS_Stat = mean(KS_Stat), KS_Stat_Gaus = mean(KS_Stat_Gaus),
+            Median_Dist = mean(Median_Dist), Median_Dist_Gaus = mean(Median_Dist_Gaus),
+            KS_Stat_Indiv = KS_Stat_Indiv, Median_Dist_Indiv = Median_Dist_Indiv
+            )
+
+#View(tbl_summary_bxplot)
+#View(tbl)
+```
+
+
+
+## ECDF (Cumulative Distribution Function)
+
+Here we plot the distribution of the posteriors obtained for the cost weight estimates. The results are not binned and the distribution is showcasing all observations.
+
+
+## Both Individual Costs and Cost Bases
+
+
+
+```{r}
+colnames(tbl)
+tbl_S1 <- tbl %>%
+  filter(Subject==3)
+View(tbl_S1)
+```
+
+```{r}
+Weights = c("#F00E00" = "True Values", "#21B0D4" = "Bayesian Estimates")
+True_Weights = c("#F00E00" = "True Weights")
+Estimates = c("#21B0D4" = "Bayesian Estimates")
+```
+
+
+```{r}
+ ggplot(tbl_S1, aes(x = x_density, y = Cost, color= Inference,  fill = Inference)) +
+  geom_density_ridges(calc_ecdf=T,
+    jittered_points = F, scale = 1.5, rel_min_height = .1,
+    point_shape = "|", point_size = 3, size = .3,
+    position = position_points_jitter(height = 0)
+  ) +
+  #scale_fill_manual(name = "Prob.", values = c("#C1FFF2", "white", "#A9E0E6"),
+  #                  labels = c("(0, 2.5%]", "(2.5%, 97.5%]", "(97.5%, 1]")) +
+  #scale_color_manual(name = "", values = c( "red"),
+  #                  labels = c("True Weights")) +
+  scale_fill_manual(values = c("#0072B250","#D55E0050"), name= "Inferred from") +
+    scale_color_manual(values = c("#B55E00", "#1072B2", "red"), name="", labels= c("", "", "True Weights")) +
+geom_vpline(data=tbl_S1, aes(x = True_Weights, y=Cost, color = "red"), size = 1.1, height = 0.2, show = F, inherit.aes = F) +
+  #scale_discrete_manual("point_color", values = c("#D55E00", "#0072B2", "red"), name = "name") +
+  #geom_vpline(data=tbl, aes(x = W_True, y=Weight, color = True_Weights), size = 1.1, height = 0.2, show = T, inherit.aes = T) +
+  scale_y_discrete(expand = c(0, 0), limits = rev(Criteria.Names), name = "Cost") +
+  scale_x_continuous(expand = c(0, 0), breaks = seq(-.5, .5, .25), labels = c('-.5', '-.25', '0', '.25', '.5'), name = "Weighting") +
+  facet_grid(.~Weight) +
+  #coord_cartesian(clip = "off") +
+  #guides(fill = guide_legend(
+  #  override.aes = list(
+  #    fill = c("#D55E00A0", "#0072B2A0"),
+  #    color = NA, point_color = NA)
+  #  )
+  #) +
+  ggtitle("Cost Posterior Distributions Inferred from Bayesian Inference for Subject 1") +
+  #theme_pubr()
+  theme_ridges(center=T) +
+  theme(legend.position="top")
+ggsave("Weight_Estimates_Posterior_Synthetic_Subject1_Gaussian.pdf", width = 12, height = 5)
+
+```
+
+
+
+
+## Boxplot for all
+
+
+```{r}
+stat.test <- tbl_summary_stat %>%
+  group_by(Weight) %>%
+  t_test(KS_Stat_Indiv ~ Inference) %>%
+  adjust_pvalue(method = "bonferroni") %>%
+  add_significance("p.adj")
+  #add_significance("p")
+
+stat.test
+# Add p-values onto the bar plots
+stat.test <- stat.test %>%
+  add_xy_position(fun = "mean_sd", x = "Weight", dodge = 0.7) 
+```
+
+```{r}
+# Create a bar plot with error bars (mean +/- sd)
+bp <- ggbarplot(
+  tbl_summary_bxplot, x = "WeightSet_No", y = "KS_Stat_Indiv", 
+  add = c("mean_sd", "point"), add.params = list(alpha=.25),
+  color= "Inference", palette = c("#1072B2", "#B55E00"),
+  fill = "Inference", alpha=.3, width=.6, size=.7,
+  position = position_dodge(0.8)
+  )
+bp +
+  stat_pvalue_manual(
+  stat.test,  label = "p.adj.signif", tip.length = .01,
+  bracket.nudge.y = .1, , bracket.size = .5
+  ) +
+  labs(x="Weight Set", y="KS-Stat", title="Kolmogorov Smirnov (KS) Stat for the Inferred cost weights") +
+  theme_pubr(base_size = 14)
+  ggsave("KS_Stat_Barplot_Individual_datapoints.pdf", width = 10, height = 5)
+
+#library(plotly)
+#ggplotly(bp)
+  facet_grid(.~Weight)
+```
+```{r}
+colnames()
+```
+
+
+```{r}
+# Create a box plot with error bars (mean +/- sd)
+bxp <- ggboxplot(
+  tbl_summary_bxplot, x = "WeightSet_No", y = "KS_Stat_Indiv", group="Inference", color= "Inference", fill = "Inference", name = "",
+  add = c("jitter"), add.params = list(size=1.8, alpha=.5),
+  palette = c("#1072B2", "#B55E00"),
+  alpha=.3, width=.6, outlier.shape = NA,
+  size = .7
+  )
+#bxp <- ggplot(tbl, aes(x = factor(WeightSet_No), y = KS_Stat, color= Inference, fill=Inference)) +
+#  geom_boxplot(outlier.shape = NA)
+bxp +
+  stat_pvalue_manual(
+  stat.test,  label = "p.adj.signif", tip.length = .005,
+  bracket.nudge.y = .1, bracket.size = .5
+  ) +
+  labs(x="Weight Set", y="KS-Stat", title="Kolmogorov Smirnov Statistics (KS-Stat) for the Inferred Cost Weights", guide_legend(show=F)) +
+  theme_pubr(base_size = 14)
+  #guides(group = guide_legend(show = FALSE))  
+  #scale_y_discrete(breaks=c(.1,.6), limits=c(0,1.1)) 
+
+  ggsave("KS_Stat_Boxplot_Individual.pdf", width = 11, height = 5)
+  
+  #theme_classic2()
+  #theme_ridges(center=T)
+  geom_point(position=position_jitterdodge())
+  geom_jitter(data=summary_bxplot, aes(x=WeightSet_No, y=KS_Stat, group=Inference, col=Inference, position=position_jitterdodge()), width = 0.2, ) +
+  geom_point(data=summary_bxplot,aes(col=Inference), position=position_jitterdodge())
+  theme_ridges(center=T)
+  #facet_grid(.~WeightSet_No)
+```
+
+```{r}
+tbl%>%group_by(Inference,Subject,WeightSet_No) %>%
+  summarize(mean(KS_Stat))
+```
+
+
+
+
+
+
+
+```{r}
+# Create a bar plot with error bars (mean +/- sd)
+bp <- ggbarplot(
+  tbl, x = Weight, y = Median_Dist, add = "mean_sd", 
+  color= "supp", palette = c("#00AFBB", "#E7B800"),
+  position = position_dodge(0.8)
+  )
+# Add p-values onto the bar plots
+stat.test <- stat.test %>%
+  add_xy_position(fun = "mean_sd", x = "dose", dodge = 0.8) 
+bp + stat_pvalue_manual(
+  stat.test,  label = "p.adj.signif", tip.length = 0.01
+  )
+
+# Move down the brackets using `bracket.nudge.y`
+bp + stat_pvalue_manual(
+  stat.test,  label = "p.adj.signif", tip.length = 0,
+  bracket.nudge.y = -2
+  )
+```
+
+
+
+
+
+
+
+
+```{r}
+matfile = readMat('Synthetic_Timeseries_Bases_R.mat')
+# matfile = readMat('ResultsChains2500iter_20230222_BayesianIOC_Bases.mat')
+
+
+Time = matfile$Time
+Torso = matfile$Torso
+Femur.Stance = matfile$Femur.Stance
+Femur.Swing = matfile$Femur.Swing
+Tibia.Stance = matfile$Tibia.Stance
+Tibia.Swing = matfile$Tibia.Swing
+
+Left.Knee = Femur.Stance - Tibia.Stance
+Right.Knee = Femur.Swing - Tibia.Swing
+Left.Hip = Femur.Stance
+Right.Hip = Femur.Swing
+
+Speed = matfile$Speed
+Cost  = matfile$Cost
+
+#df <- data.frame(Time, Torso=Torso, Femur.Swing = Femur.Swing, Femur.Stance=Femur.Stance, Tibia.Swing=Tibia.Swing, Tibia.Stance=Tibia.Stance, Speed=Speed, Cost=Cost)
+#View(df)
+#df_long <- df %>% pivot_longer(cols=2:6, names_to = "Variable", values_to="Limb_Angles")
+
+
+df <- data.frame(Time, Left.Hip, Right.Hip, Left.Knee, Right.Knee, Speed=Speed, Cost=Cost)
+df_Long <- df %>% pivot_longer(cols=2:5, names_to = "Variable", values_to="Joint_Angle")
+#View(df_Long)
+
+for(i in 1:length(Cost)){
+  if(df_Long$Variable[i]=="Left.Knee"){
+    df_Long$Joint[i] = "Knee"
+    df_Long$Side[i] = "Left"
+  }else if(df_Long$Variable[i]=="Right.Knee"){
+    df_Long$Joint[i] = "Knee"
+    df_Long$Side[i] = "Right"
+  }else if(df_Long$Variable[i]=="Left.Hip"){
+    df_Long$Joint[i] = "Hip"
+    df_Long$Side[i] = "Left"
+  }else{
+    df_Long$Joint[i] = "Hip"
+    df_Long$Side[i] = "Right"
+  }
+}
+  
+df_Long <- df_Long %>%
+  filter(Cost==1)
+  
+View(df_Long)
+
+#Femur.Stance.Traj <- df_long %>%
+#  filter(Variable=="Femur.Stance" & Speed == c(.4,.7))
+
+#View(Femur.Stance.Traj)
+
+```
+
+```{r}
+df_Long
+```
+
+
+```{r}
+ggplot(df_Long, aes(x=Time, y=Joint_Angle, group=Speed, col=Speed)) +
+  geom_line(size=.9) +
+  facet_grid(Joint~Side) 
+  #scale_fill_manual(values = c("#0072B250","#D55E0050",  "red"), name= "Inferred from") +
+  #scale_color_manual(values = c("#B55E00", "#1072B2", "red"), name="", labels= c("", "", "True Weights")) +
+  #scale_discrete_manual("point_color", values = c("#D55E00", "#0072B2", "red"), name = "name") + 
+  scale_y_discrete(expand = c(0, 0), limits=c(-.25, 0, .25), name = "Limb Angles (rad)") +
+  scale_x_continuous(expand = c(0, 0), name = "Time (s)") +
+  #coord_cartesian(clip = "off") +
+  #guides(fill = guide_legend(
+  #  override.aes = list(
+  #    fill = c("#D55E00A0", "#0072B2A0"),
+  #    color = NA, point_color = NA)
+  #  )
+  #) +
+  ggtitle("Synthetic Data: Predicted Locomotor Patterns from Forward Simulations of Gait") +
+  theme_ridges(center=T)
+ggsave("Synthetic_Patterns.pdf", width = 9.5, height = 8)
+```
+
+
+
+
+
+
+
+```{r}
+matfile = readMat('Trajectories_Bayesian_Bases.mat')
+# matfile = readMat('ResultsChains2500iter_20230222_BayesianIOC_Bases.mat')
+
+
+Time = matfile$Time
+Torso = matfile$Torso
+Femur.Stance = matfile$Femur.Stance
+Femur.Swing = matfile$Femur.Swing
+Tibia.Stance = matfile$Tibia.Stance
+Tibia.Swing = matfile$Tibia.Swing
+
+Left.Knee = Femur.Stance - Tibia.Stance
+Right.Knee = Femur.Swing - Tibia.Swing
+Left.Hip = Femur.Stance
+Right.Hip = Femur.Swing
+
+Speed = matfile$Speed
+Cost  = matfile$Cost
+Simulation = paste('Simulation', matfile$Simulation)
+Obs = matfile$Obs
+Error=paste('RMS =',matfile$Error)
+
+#df <- data.frame(Time, Torso=Torso, Femur.Swing = Femur.Swing, Femur.Stance=Femur.Stance, Tibia.Swing=Tibia.Swing, #Tibia.Stance=Tibia.Stance, Speed=Speed, Cost=Cost, Simulation=Simulation, Obs=Obs, RMS=Error)
+#df_Traj <- df %>% pivot_longer(cols=2:6, names_to = "Variable", values_to="Limb_Angles")
+#View(df_Traj)
+
+df <- data.frame(Time, Left.Hip, Right.Hip, Left.Knee, Right.Knee, Speed=Speed, Cost=Cost, Simulation=Simulation, Obs=Obs, RMS=Error)
+df_Traj <- df %>% pivot_longer(cols=2:5, names_to = "Variable", values_to="Joint_Angle")
+View(df_Traj)
+
+for(i in 1:length(Error)){
+  if(df_Traj$Variable[i]=="Left.Knee"){
+    df_Traj$Joint[i] = "Knee"
+    df_Traj$Side[i] = "Left"
+  }else if(df_Traj$Variable[i]=="Right.Knee"){
+    df_Traj$Joint[i] = "Knee"
+    df_Traj$Side[i] = "Right"
+  }else if(df_Traj$Variable[i]=="Left.Hip"){
+    df_Traj$Joint[i] = "Hip"
+    df_Traj$Side[i] = "Left"
+  }else{
+    df_Traj$Joint[i] = "Hip"
+    df_Traj$Side[i] = "Right"
+  }
+}
+
+df_Traj_FR <- df_Traj %>%
+  filter(Cost==1, Simulation=="Simulation 1")
+df_Traj_Naive <- df_Traj %>%
+  filter(Cost==0, Simulation=="Simulation 1")
+  
+# View(df_long)
+
+#Femur.Stance.Traj <- df_long %>%
+#  filter(Variable=="Femur.Stance" & Speed == c(.4,.7))
+
+#View(Femur.Stance.Traj)
+
+```
+
+
+```{r}
+ggplot(df_Traj_Naive,aes(x=Time, y=Joint_Angle, group=Speed, col=Speed)) +
+#  geom_line(aes(x=Time, y=Limb_Angles, col=Speed), size=.9) +
+  geom_smooth(show.legend = T) +
+  facet_grid(Joint~Side) +
+  geom_line(data=df_Long,aes(x=Time, y=Joint_Angle, group=Speed), col="black", size=.3, linetype=2, show.legend = T) +
+  #scale_fill_manual(values = c("#0072B250","#D55E0050",  "red"), name= "Inferred from") +
+  #scale_color_manual(values = c("#B55E00", "#1072B2", "red"), name="", labels= c("", "", "True Weights")) +
+  scale_discrete_manual("point_color", values = c("red"), name = "name") + 
+  scale_y_discrete(expand = c(0, 0), limits=c(-.25, 0, .25), name = "Limb Angles (rad)") +
+  scale_x_continuous(expand = c(0, 0), name = "Time (s)") +
+  #coord_cartesian(clip = "off") +
+  #guides(fill = guide_legend(
+  #  override.aes = list(
+  #    fill = c("#D55E00A0", "#0072B2A0"),
+  #    color = NA, point_color = NA)
+  #  )
+  #) +
+  ggtitle("Feature-reduced Bayesian Inference") +
+  #ggtitle("Naïve Bayesian Inference") +
+  #ggtitle("Locomotor Patterns Recovered by Naïve Bayesian Inference") +
+  theme_ridges(center=T)
+ggsave("Bayesian_Results_Trajectories_Naive.pdf", width = 7, height = 8)
+ggsave("Bayesian_Results_Trajectories_Feature-reduced.pdf", width = 7, height = 8)
+
+```
+
+
+
+```{r}
+
+
+matfile = readMat('Trajectories_Bayesian_10Subjects_5Weights.mat')
+# matfile = readMat('ResultsChains2500iter_20230222_BayesianIOC_Bases.mat')
+
+
+Time = matfile$Time
+Torso = matfile$Torso
+Femur.Stance = matfile$Femur.Stance
+Femur.Swing = matfile$Femur.Swing
+Tibia.Stance = matfile$Tibia.Stance
+Tibia.Swing = matfile$Tibia.Swing
+Time.Demo = matfile$Time.Demo
+Torso.Demo = matfile$Torso.Demo
+Femur.Stance.Demo = matfile$Femur.Stance.Demo
+Femur.Swing.Demo = matfile$Femur.Swing.Demo
+Tibia.Stance.Demo = matfile$Tibia.Stance.Demo
+Tibia.Swing.Demo = matfile$Tibia.Swing.Demo
+Speed = matfile$Speed
+Weight  = matfile$Weight
+#Simulation = paste('Simulation', matfile$Simulation)
+#Obs = matfile$Obs
+RMSE=matfile$RMSE
+Subject=matfile$Subject
+Inference=matfile$Inference
+
+
+df <- data.frame(Time, Torso=Torso, Femur.Swing = Femur.Swing, Femur.Stance=Femur.Stance, Tibia.Swing=Tibia.Swing, Tibia.Stance=Tibia.Stance, 
+                 Speed=Speed, Weight=Weight, RMSE=RMSE, Subject=Subject, Inference=Inference)
+df_Demo <- data.frame(Time.Demo, Torso.Demo=Torso.Demo, Femur.Swing.Demo = Femur.Swing.Demo, Femur.Stance.Demo=Femur.Stance.Demo, Tibia.Swing.Demo=Tibia.Swing.Demo, Tibia.Stance.Demo=Tibia.Stance.Demo,
+                 Speed=Speed, Weight=Weight, RMSE=RMSE, Subject=Subject, Inference=Inference)
+
+df_Traj <- df %>% pivot_longer(cols=2:6, names_to = "Variable", values_to="Limb_Angles") 
+
+df_Traj_Demo <- df_Demo %>%
+  pivot_longer(cols=2:6, names_to = "Variable_Demo", values_to="Limb_Angles_Demo")
+
+View(df_Traj_Demo)
+
+Subj = 1
+
+df_Traj_S1_Naive <- df_Traj %>%
+  filter(Subject==Subj, Inference==1)
+df_Traj_S1_Naive_Demo <- df_Traj_Demo %>%
+  filter(Subject==Subj, Inference==1)
+
+df_Traj_S1_FR <- df_Traj %>%
+  filter(Subject==Subj, Inference==2)
+df_Traj_S1_FR_Demo <- df_Traj_Demo %>%
+  filter(Subject==Subj, Inference==2)
+
+#View(df_long)
+
+#Femur.Stance.Traj <- df_long %>%
+#  filter(Variable=="Femur.Stance" & Speed == c(.4,.7))
+
+#View(Femur.Stance.Traj)
+
+
+df_Traj_S1_Naive_Summary <- df_Traj_S1_Naive %>%
+  group_by(Subject, Variable, Inference, Speed, Weight, Time) %>%
+  mutate(Mean_Angle=mean(Limb_Angles), sd_Angle=sd(Limb_Angles), Subject, Variable, Inference, Speed, Weight)
+df_Traj_S1_Naive_Demo_Summary <- df_Traj_S1_Naive_Demo %>%
+  group_by(Subject, Variable_Demo, Inference, Speed, Weight) %>%
+  group_by(Time.Demo) %>%
+  mutate(Mean_Angle=mean(Limb_Angles_Demo), sd_Angle=sd(Limb_Angles_Demo), Subject, Variable_Demo, Inference, Speed, Weight)
+
+```
+
+
+```{r}
+ggplot(df_Traj_S1_Naive_Summary,aes(x=Time, y=Mean_Angle, group=Speed, col=Speed, fill=Speed)) +
+#  geom_line(aes(x=Time, y=Limb_Angles, col=Speed), size=.9) +
+  geom_smooth(show.legend = T) +
+  geom_smooth(data=df_Traj_S1_Naive_Demo,aes(x=Time.Demo, y=Limb_Angles_Demo, group=Speed), col="red", size=.3, linetype=2, show.legend = T) +
+  facet_grid(Variable~Weight) +
+  scale_color_gradient(low = "skyblue", high = "darkblue")
+  #scale_fill_manual(values = c("#0072B250","#D55E0050",  "red"), name= "Inferred from") +
+  #scale_color_manual(values = c("#B55E00", "#1072B2", "red"), name="", labels= c("", "", "True Weights")) +
+  scale_discrete_manual("point_color", values = c("red"), name = "name") + 
+  scale_y_discrete(expand = c(0, 0), limits=c(-.25, 0, .25), name = "Limb Angles (rad)") +
+  scale_x_continuous(expand = c(0, 0), name = "Time (s)") +
+  #coord_cartesian(clip = "off") +
+  #guides(fill = guide_legend(
+  #  override.aes = list(
+  #    fill = c("#D55E00A0", "#0072B2A0"),
+  #    color = NA, point_color = NA)
+  #  )
+  #) +
+  ggtitle("Feature-reduced Bayesian Inference") +
+  #ggtitle("Naïve Bayesian Inference") +
+  #ggtitle("Locomotor Patterns Recovered by Naïve Bayesian Inference") +
+  theme_ridges(center=T)
+```
+
+
+```{r}
+ggplot(df_Traj_S1_Naive_Summary,aes(x=Time, y=Mean_Angle, group=Speed, col=Speed, fill=Speed)) +
+  geom_ribbon(aes(ymin = Mean_Angle - sd_Angle, ymax = Mean_Angle + sd_Angle), fill = "grey70") +
+  geom_line(aes(y = Mean_Angle)) +
+  facet_grid(Variable~Weight) +
+  scale_color_gradient(low = "skyblue", high = "darkblue")
+```
+
+
+
+```{r}
+ggplot(df_Traj_S1_FR,aes(x=Time, y=Limb_Angles, group=Speed, col=Speed, fill=Speed)) +
+#  geom_line(aes(x=Time, y=Limb_Angles, col=Speed), size=.9) +
+  geom_smooth(show.legend = T) +
+  geom_line(data=df_long,aes(x=Time, y=Limb_Angles, group=Speed), col="black", size=.3, linetype=2, show.legend = T) +
+  facet_grid(Variable~Weight) +
+  scale_color_distiller(palette = "Oranges", direction=1) +
+  scale_fill_distiller(palette = "Oranges", direction=1)
+  scale_color_gradient(low = "orange", high = "darkorange")
+  #scale_fill_manual(values = c("#0072B250","#D55E0050",  "red"), name= "Inferred from") +
+  #scale_color_manual(values = c("#B55E00", "#1072B2", "red"), name="", labels= c("", "", "True Weights")) +
+  scale_discrete_manual("point_color", values = c("red"), name = "name") + 
+  scale_y_discrete(expand = c(0, 0), limits=c(-.25, 0, .25), name = "Limb Angles (rad)") +
+  scale_x_continuous(expand = c(0, 0), name = "Time (s)") +
+  #coord_cartesian(clip = "off") +
+  #guides(fill = guide_legend(
+  #  override.aes = list(
+  #    fill = c("#D55E00A0", "#0072B2A0"),
+  #    color = NA, point_color = NA)
+  #  )
+  #) +
+  ggtitle("Feature-reduced Bayesian Inference") +
+  #ggtitle("Naïve Bayesian Inference") +
+  #ggtitle("Locomotor Patterns Recovered by Naïve Bayesian Inference") +
+  theme_ridges(center=T)
+```
+
+
+
+## Read the matlab file for Bayesian results
+
+```{r}
+matfile = readMat('Trajectories_Bayesian_10Subjects_5Weights.mat')
+
+Criteria.Names = c('1. Angular Acceleration', '2. Angular Jerk', '3. Linear Acceleration', '4. Linear Jerk',
+    '5. Torque Squared', '6. Absolute Torque', '7. Torque Rate Squared', '8. Absolute Torque Rate', '9. Torque 2nd Rate Squared',
+    '10. Absolute Torque 2nd Rate', '11. yGRF Rate', '12. xGRF Rate',
+    '13. Positive Work Rate', '14. Absolute Work Rate', '15. Kinetic Energy', '16. Pk-to-pk Angular Momentum')
+
+chain        = matfile$chain.Select
+x_density        = matfile$x.density.Select
+Cost      = matfile$Cost.ID.Select
+True_Weights = matfile$True.Weights.Select
+Weight   = matfile$Weight.ID.Select
+Subject   = matfile$Subject.ID.Select
+Inference = matfile$Inference.ID.Select
+KS_Stat      = matfile$KS.Stat.Select
+Median_Dist  = matfile$Median.Dist.Select
+KS_Stat_Gaus      = matfile$KS.Stat.Gaus.Select
+Median_Dist_Gaus  = matfile$Median.Dist.Gaus.Select
+KS_Stat_Indiv  = matfile$KS.Stat.Individual.Select
+Median_Dist_Indiv  = matfile$Median.Dist.Individual.Select
+
+
+
+tbl = data.frame(chain, Cost, True_Weights, Weight, Subject, Inference, KS_Stat, Median_Dist, KS_Stat_Gaus, Median_Dist_Gaus, x_density, KS_Stat_Indiv, Median_Dist_Indiv) %>%
+  mutate(Cost = factor(Cost, levels=1:16, labels=Criteria.Names),
+         Inference = factor(Inference, labels=c("Naïve Inference", "Featured-Reduced")))
+
+for (i in 1:length(chain)) {
+  tbl$Weight_KS [i] = gsub(" ", " ", paste("Simulation", Weight[i], ",  KS-Stat=", round(KS_Stat[i],2)))
+  tbl$Weight [i] = gsub(" ", " ", paste("Weight Set", Weight[i]))
+  tbl$WeightSet_No [i] = Weight[i]
+}
+
+tbl_summary_stat <- tbl %>% group_by(Inference,Subject,Weight) %>%
+  summarize( KS_Stat = mean(KS_Stat), KS_Stat_Gaus = mean(KS_Stat_Gaus),
+            Median_Dist = mean(Median_Dist), Median_Dist_Gaus = mean(Median_Dist_Gaus),
+            KS_Stat_Indiv = KS_Stat_Indiv, Median_Dist_Indiv = Median_Dist_Indiv
+            )
+
+tbl_summary_bxplot <- tbl %>% group_by(Inference,Subject,WeightSet_No) %>%
+  summarize( KS_Stat = mean(KS_Stat), KS_Stat_Gaus = mean(KS_Stat_Gaus),
+            Median_Dist = mean(Median_Dist), Median_Dist_Gaus = mean(Median_Dist_Gaus),
+            KS_Stat_Indiv = KS_Stat_Indiv, Median_Dist_Indiv = Median_Dist_Indiv
+            )
+
+#View(tbl_summary_bxplot)
+#View(tbl)
+```
+
+
+
+
+
+
+
+```{r}
+ggplot(cacao_means, aes(x = estimate, y = location)) +
+  stat_confidence_density(aes(moe = std.error), confidence = 0.68, fill = "#81A7D6", height = 0.7) +
+  geom_errorbarh(aes(xmin = estimate - std.error, xmax = estimate + std.error), height = 0.3) +
+  geom_vpline(aes(x = estimate), size = 1.5, height = 0.7, color = "#D55E00") +
+  xlim(2.8, 3.6) + 
+  theme_minimal()
+```
+

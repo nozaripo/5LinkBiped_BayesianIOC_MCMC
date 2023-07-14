@@ -465,7 +465,8 @@ if dostats2
 end
 
 chainind = 1; % where we are in chain
-for isimu=2:nsimu % simulation loop
+for isimu=2:nsimu % simulation 
+    isimu
   ii = ii+1; % local adaptation index (?)
   chainind = chainind+1;
 

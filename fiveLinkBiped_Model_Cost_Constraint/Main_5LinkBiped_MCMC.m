@@ -80,7 +80,7 @@ data.V_Treadmill_Array = V_Treadmill_Array;
 
 model.ssfun = @MSD_SS;
 % model.priorfun = @prior_w;
-model.sigma2 = 1;
+model.sigma2 = .2;
 
 %% this is the part where we do the parallelization
 % must have parallel tool box installed in matlab - check first!
@@ -287,11 +287,11 @@ burn_in = options.nsimu *0.80;
 tic
 
 % Open the parallel pools 
-poolobj = parpool(n_pools);
+% poolobj = parpool(n_pools);
 
 % ----------------- DO THE MCMC!!!! -------------------------------
-parfor k = 1:n_pools
-% for k = 1:n_pools
+% parfor k = 1:n_pools
+for k = 1:n_pools
     [results(:,:,k), chain(:,:,k), s2chain(:,:,k)]= mcmcrun(model,data,params(:,k),options);
 end
 

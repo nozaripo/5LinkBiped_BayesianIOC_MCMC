@@ -79,9 +79,9 @@ matplot(sp, var.exp.normal, type = "l", lty = 1:1, lwd = .5, pch = NULL,
 
 
 
-sparsity = 5e-2*153/numSteps
+sparsity = 5e-1*31/numSteps
 
-aa6 = robspca(X, k = 5, alpha = sparsity, beta = 1e-04, gamma = 100,
+aa6 = robspca(X, k = 3, alpha = sparsity, beta = 1e-04, gamma = 100,
               center = TRUE, scale = TRUE, max_iter = 100000, tol = 1e-05,
               verbose = TRUE)
 sum(aa6$sdev[1:5]^2)/max(var.explained.spca)
@@ -693,7 +693,7 @@ k = N.Comp
 
 
 
-setwd('C:/Users/nozaripo/OneDrive - University of Southern California/OptimTraj-master/demo/fiveLinkBiped - IOC')
+# setwd('C:/Users/nozaripo/OneDrive - University of Southern California/OptimTraj-master/demo/fiveLinkBiped - IOC')
 
 
 
@@ -731,14 +731,14 @@ lambda_values = cv.spcr(as.matrix(X_scaled), as.vector(y), k, w=0.1, xi=0.01, nf
                         center=FALSE, scale=FALSE, lambda.B.length=100, lambda.gamma.length=100,
                         lambda.B=NULL, lambda.gamma=NULL)
 lambda_values$
-lambda.B = 70
+lambda.B = 700
 lambda.gamma = 1000
 #lambda.B = 33.6
 #lambda.gamma = 33.6
 #Results.SPCR = spcr(as.matrix(X), as.vector(y), k, lambda.B, lambda.gamma, w=0.1, xi=0.01, 
 #                    adaptive=FALSE, center=TRUE, scale=TRUE)
-Results.SPCR = spcr(as.matrix(X_scaled), as.vector(y), k, lambda.B, lambda.gamma, w=0.1, xi=0.01, 
-                    adaptive=FALSE, center=TRUE, scale=FALSE)
+Results.SPCR = spcr(as.matrix(X), as.vector(y), k, lambda.B, lambda.gamma, w=0.1, xi=0.01, 
+                    adaptive=FALSE, center=TRUE, scale=T)
 
 View(Results.SPCR$loadings.A)
 
@@ -869,8 +869,16 @@ for(i in seq(2,8,1)){
 mtext("Loadings of criteria on each PC",1)
 
 
+X = scale(X, center = TRUE, scale = TRUE)
 
-
+# perform k-fold cross-validation to find optimal lambda value
+cv_model <- cv.glmnet(X, y, alpha = 1)
+# find optimal lambda value that minimizes test MSE
+best_lambda <- cv_model$lambda.min
+# Lasso on X and y
+best_model <- glmnet(X, y, alpha = 1, lambda = best_lambda, standardize = FALSE)
+Lasso_Coefficients_DTW = matrix(best_model$beta)
+best_model$beta
 
 
 for (i in 1:10){

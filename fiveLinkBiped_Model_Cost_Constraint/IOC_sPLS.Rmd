@@ -1,0 +1,135 @@
+---
+title: "IOC_sPLS"
+author: "Pouria"
+date: '2023-02-10'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Install and load packages
+
+```{r warning=F}
+library(magrittr)
+library(tidyverse)
+library(ggplot2)
+library("R.matlab")
+library(sparsepca)
+library(mixOmics)
+library(spls)
+library("RColorBrewer")
+library(pls)
+library(spcr)
+```
+
+
+```{r echo=F, results='hide'}
+X = read.csv('Cost_Components_Eval_Fakuchi_AllData.txt',header=F)
+y = read.csv('Cost_Deviation_Eval_y_forPLSR.txt',header=F)
+
+X = read.csv('Cost_Components_Eval_Fakuchi_AllData_2023-01-19.txt',header=F)
+y = read.csv('Cost_Deviation_Eval_y_forPLSR_2023-01-19.txt',header=F)
+
+Data = readMat('Fukuchi_Features_DTW_RMS.mat', fixNames=TRUE, drop=c("singletonLists"),
+               sparseMatrixClass=c("Matrix"), verbose=FALSE)
+
+
+setwd('C:/Users/nozaripo/Desktop/5LinkBiped_BayesianIOC_MCMC/fiveLinkBiped_Model_Cost_Constraint')
+Data = readMat('Fukuchi_Features_DTW_RMS_2023-01-19.mat', fixNames=TRUE, drop=c("singletonLists"),
+               sparseMatrixClass=c("Matrix"), verbose=FALSE)
+
+
+Features.Matrix = Data$Cost.Components.Subjects
+DTW.Vector      = Data$DTW.Sum.Subjects
+RMSE.Vector     = Data$RMSE.Sum.Subjects
+
+
+
+
+
+X = Data$Cost.Components
+y = Data$DTW.Sum
+
+X.scaled = scale(X, center = TRUE, scale = TRUE)
+y.scaled = scale(y, center = TRUE, scale = TRUE)
+X
+
+```
+
+
+
+
+## Sparse Partial Least Squares (sPLS)
+
+We first do the cross-validated sPLS to find the hyperparameters
+
+```{r}
+N.Comp = 16
+cv.spls.obj <- cv.spls(X, y, fold=10, K=c(3:N.Comp), eta=seq(.1,.4,.1), kappa=0.5,
+                       select="pls2", fit="simpls",
+                       scale.x=TRUE, scale.y=FALSE, plot.it=TRUE )
+
+
+```
+```{r}
+cv.spls.obj$eta.opt
+cv.spls.obj$K.opt
+cv.spls.obj$mspemat
+```
+
+```{r}
+spls.obj <- spls(X, y, K=cv.spls.obj$K.opt, eta=cv.spls.obj$eta.opt-.05, kappa=0.5, select="pls2", fit="simpls",
+     scale.x=TRUE, scale.y=FALSE, eps=1e-4, maxstep=200, trace=T)
+spls.obj <- spls(X, y, K=5, eta=.3, kappa=0.5, select="pls2", fit="simpls",
+     scale.x=TRUE, scale.y=FALSE, eps=1e-4, maxstep=200, trace=T)
+spls.obj$projection
+spls.obj$projection
+
+spls.loadings <- as.matrix(spls.obj$projection)
+dim(spls.loadings)
+
+spls.loadings.norm <- apply(spls.loadings, 2, function(x) x/sqrt(sum(x^2)) )
+View(spls.loadings.norm)
+apply(spls.loadings, 2, function(x) x/sqrt(sum(x^2)) )
+
+
+
+
+```
+
+
+```{r}
+cumsum(apply(X.scaled.centered%*%spls.loadings.norm, 2, var)/16)
+```
+
+
+
+## sparse PCR
+
+```{r}
+library(spcr)
+```
+
+
+```{r}
+lambda_values = cv.spcr(as.matrix(X), as.vector(y), 10, w=0.1, xi=0.01, nfolds=5, adaptive=T,
+                        center=T, scale=FALSE, lambda.B.length=10, lambda.gamma.length=10,
+                        lambda.B=NULL, lambda.gamma=NULL)
+lambda.B = 700
+lambda.gamma = 1000
+Results.SPCR = spcr(as.matrix(X), as.vector(y), 10, lambda.B, lambda.gamma, w=0.1, xi=0.01, 
+                    adaptive=FALSE, center=TRUE, scale=T)
+Results.SPCR$loadings.B
+
+
+X.principal.spcr <- X.standard_manual %*% Results.SPCR$loadings.B
+
+cumsum( apply(X.principal.spcr, 2, var) / 16 )
+
+ggcorr(X.principal.spcr, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+
+```
+
+

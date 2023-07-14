@@ -11,7 +11,7 @@ len_cost = size(feat_matrix,2);
 for i = 1:len_cost
     for j = i:len_cost
         
-        C(i,j) = corr2(feat_matrix(:,i),feat_matrix(:,j))^2;
+        C(i,j) = corr2(feat_matrix(:,i),feat_matrix(:,j));
         
     end
 end

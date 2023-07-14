@@ -16,27 +16,40 @@ c = [...
     q1'-q2';    %Stance knee joint limit
     q5'-q4'];   %Swing knee joint limit
 
-c_q4_init = [q4(1)+.1 ; -q2(1)+.1];
+c_q4_init = [q5(1)+.2; q4(1)+.2 ; -q1(1)+.2; -q2(1)+.2];
+% c_q4_init = [q5(1)+.1; q4(1)+.1 ; -q1(1)+.1; -q2(1)+.1];
+c_q4_init = [q5(1)+.05; q4(1)+.05 ; -q1(1)+.05; -q2(1)+.05];
+
+c_q4_init = [q5(1)+.25; q4(1)+.08 ; -q1(1)+.01; -q2(1)+.15];
+
+c_q4_init = [q2(end)];
+
 % c_q4_init = [];
 
 % c = [c;
 %      q2'-q1'-pi/15;
 %      q4'-q5'-pi/3];
 
-% c_u = max(max(abs(diff(u'))))-50;
+c_u = max(max(abs(diff(u'))))-5;
 c_u = [];
 
-c_torso_treadmill = (P(3,end)-P(3,1)) * tanh(P(3,end)-P(3,1)) - .05;
+c_torso_treadmill = (G(3,end)-G(3,1)) * tanh(G(3,end)-G(3,1)) - .05;
 % c_torso_treadmill = [];
+
 
 
 ceq_u_limitcycle = u(:,1)-u(5:-1:1,end);
 ceq_u_limitcycle = [];
 
+% P(10,5) is the y coordinate of the swing foot
 % c_clearance = -P(10,5:end-5)'+.005;
-% c_clearance = -P(10,7)'+.02;
-c_clearance = [];
+c_clearance = -P(10,4)'+.005;
+c_clearance = -P(10,5)'+.01;
+c_clearance = -P(10,3:end-2)'+.001;
+% c_clearance = [];
 
+c_torso_height = -P(4,:)'+.85;
+c_torso_height = [];
 
 % ceq_torso_vel = P(3,1)-P(3,end);
 
@@ -44,11 +57,14 @@ c_clearance = [];
 c_foot_foreaft_init = [];
 
 
-c = [c;c_u;c_clearance; c_q4_init; c_foot_foreaft_init; c_torso_treadmill];
+c = [c;c_u;c_clearance; c_q4_init; c_foot_foreaft_init; c_torso_treadmill; c_torso_height];
 
 
+% either this or c_q4_init
 ceq = [];
 % ceq = [x(1:5,1)-q0];%
+ceq_torso_pitch = x(3,1);
+ceq_torso_pitch = [];
 
 % ceq = q1(1)-q2(1);
 
@@ -58,10 +74,14 @@ ceq_treadmill = P(5,end)-P(5,1);
 ceq_treadmill = [];
 
 
-% ceq_foot_height_init = P(10,1);
+ceq_foot_height_init = P(10,1);
 ceq_foot_height_init = [];
 
-ceq = [ceq ; ceq_u_limitcycle ; ceq_treadmill'; ceq_foot_height_init];
+ceq_foot_height_end = P(10,end);
+% ceq_foot_height_end = [];
+
+
+ceq = [ceq ; ceq_u_limitcycle ; ceq_treadmill'; ceq_foot_height_init; ceq_foot_height_end; ceq_torso_pitch];
 
 if nargout == 4 %Analytic gradients
     % Gradients with respect to:

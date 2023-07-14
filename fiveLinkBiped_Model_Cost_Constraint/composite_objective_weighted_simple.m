@@ -176,6 +176,10 @@ cost_vector = [1 * Work_Positive  ;...                       % torques squared
 %                 100* Torque_Absolute ;...                       % torque rate squared
 %                 1* Angular_Momentum_pk2pk];            % Jerk
 
+
+
+
+
 dObj = W*cost_vector / t(end);
 
 % % dObj = Torque_Squared + .02*TorqueRate_Squared;

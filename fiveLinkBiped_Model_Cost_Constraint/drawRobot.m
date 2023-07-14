@@ -44,7 +44,7 @@ colorStance = [200,60,60]/255;
 colorSwing = [60,60,200]/255;
 colorTorso = [160, 80, 160]/255;
 
-groundy = [-.025, -.025];
+groundy = [-.06, -.06];
 
 % Set up the figure
 hold off;
@@ -54,10 +54,10 @@ co = 0;
 lim = -3;
 while lim <= 3
     if mod(co,2) == 0
-        plot([lim lim+.2]-V_tr*t+ offset,groundy,'LineWidth',10,'Color',colorGround);
+        plot([lim lim+.2]-V_tr*t + offset  ,groundy,'LineWidth',10,'Color',colorGround);
     hold on;
     else
-        plot([lim lim+.2]-V_tr*t+ offset,groundy,'LineWidth',10,'Color',colorGround2);
+        plot([lim lim+.2]-V_tr*t+ offset ,groundy,'LineWidth',10,'Color',colorGround2);
     end
     lim = lim + .2;
     co = co + 1;
@@ -72,11 +72,11 @@ plot(0, 0,'k|','MarkerSize',30);
 % plot(x(3:4),y(3:4),'LineWidth',4,'Color',colorTorso);
 % plot(x([3,5,6]),y([3,5,6]),'LineWidth',4,'Color',colorSwing);
 
-plot(x(1:2),y(1:2),'LineWidth',6,'Color',[1 0 1]);
-plot(x(2:3),y(2:3),'LineWidth',6,'Color',[1 0 0]);
-plot(x(3:4),y(3:4),'LineWidth',6,'Color',[.3 .3 .3]);
-plot(x([3,5]),y([3,5]),'LineWidth',6,'Color',[0 0 1]);
-plot(x(5:6),y(5:6),'LineWidth',6,'Color',[0 1 1]);
+plot(x(1:2),y(1:2),'LineWidth',7,'Color',[1 0 1]);
+plot(x(2:3),y(2:3),'LineWidth',7,'Color',[1 0 0]);
+plot(x(3:4),y(3:4),'LineWidth',8,'Color',[.3 .3 .3]);
+plot(x([3,5]),y([3,5]),'LineWidth',7,'Color',[0 0 1]);
+plot(x(5:6),y(5:6),'LineWidth',7,'Color',[0 1 1]);
 % ax = gca;
 % ax.ColorOrder = [1 0 1; 1 0 0; 0 0 0; 0 0 1; 0 1 1];
 
@@ -94,10 +94,12 @@ plot(G2(1), G2(2),'ko','MarkerSize',5,'LineWidth',2);
 plot(G3(1), G3(2),'ko','MarkerSize',5,'LineWidth',2);
 plot(G4(1), G4(2),'ko','MarkerSize',5,'LineWidth',2);
 plot(G5(1), G5(2),'ko','MarkerSize',5,'LineWidth',2);
-text(0,-.15, ['Time = ', num2str(t, '%.3f'), ' s'], 'FontSize', 13, 'HorizontalAlignment', 'center')
+text(0,2, ['Treadmill Speed = ', num2str(V_tr, '%.1f'), ' m/s'], 'FontSize', 12, 'HorizontalAlignment', 'center')
+text(0,1.97, '_______________', 'FontSize', 12, 'HorizontalAlignment', 'center')
+text(0,1.8, ['Time = ', num2str(t, '%.3f'), ' s'], 'FontSize', 13, 'HorizontalAlignment', 'center')
 % Format the axis:
 axis([[-1 1],yBnd]); axis equal; axis off;
 
-ylim([-.05 1.6])
+ylim([-.06 2])
 xlim([-1 1])
 end

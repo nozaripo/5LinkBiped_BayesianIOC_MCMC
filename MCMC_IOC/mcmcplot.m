@@ -26,6 +26,8 @@ function mcmcplot(chain,inds,names,plottype,varargin)
 % ML, 2001
 % $Revision: 1.26 $  $Date: 2017/01/23 14:16:18 $
 
+addpath ../Violinplot_Matlab/
+
 if exist('lowess_mexgw') == 3
   smooth=1; % lowess smooth with 'chain' plot
 else
@@ -90,8 +92,28 @@ switch plottype
   for i=1:np
     h=subplot(ns1,ns2,i);
 %     [y,x]=density(chain(:,inds(i)),[],varargin{:});
-    [y,x]=density(chain(:,inds(i))./chain(:,1)*.2,[],varargin{:});
+%     [y,x]=density(chain(:,inds(i))./chain(:,1)*.2,[],varargin{:});
+    [y,x]=density(chain(:,inds(i))./sum(chain,2),[],varargin{:},1);
     plot(x,y,'-k')
+    hold on
+    x1 = linspace(min(x),max(x),1000);
+    y1 = interp1(x,y,x1);
+    for ij = 2:1000
+        if trapz(x1(1:ij),y1(1:ij)) / trapz(x,y) >= .025
+            CI025 = x1(ij)
+            break;
+        end
+    end
+    for ij=1000:-1:2    
+        if trapz(x1(1:ij),y1(1:ij)) / trapz(x,y) >= .975
+            CI975 = x1(ij)
+            break;
+        end
+    end
+    xline(CI025, ':k', 'LineWidth', 1.5)
+    xline(CI975, ':k', 'LineWidth', 1.5)
+%     xline(w_true(ii),':k', 'LineWidth', 1.5)
+    
 %     set(h,'ytick',[]);
     title(sprintf('%s',names{i}))
     % add prior density
@@ -141,9 +163,106 @@ switch plottype
       %  xlim(2) = min(xlim(2),xp(end));
       %  xlim(1) = max(xlim(1),xp(1));
       end
-      set(h,'xlim',xlim);
+%       set(h,'xlim',xlim);
     end
   end
+  
+  case('denspanel-ranges')
+  np  = length(inds);
+  ns1 = ceil(sqrt(np));
+  ns2 = round(sqrt(np));
+  for i=1:np
+%     h=subplot(ns1,ns2,i);
+%     [y,x]=density(chain(:,inds(i)),[],varargin{:});
+%     [y,x]=density(chain(:,inds(i))./chain(:,1)*.2,[],varargin{:});
+    [y,x]=density(chain(:,inds(i))./sum(chain,2),[],varargin{:},1);
+    if ~exist('sc_y')
+        sc_y = max(y);
+    end
+    plot(x,y/sc_y+4-i,'-k')
+    hold on
+    x1 = linspace(min(x),max(x),1000);
+    y1 = interp1(x,y,x1);
+    for ij = 2:1000
+        if trapz(x1(1:ij),y1(1:ij)) / trapz(x,y) >= .05
+            CI025 = x1(ij);
+            id_025=ij;
+            break;
+        end
+    end
+    for ij=1000:-1:2    
+        if trapz(x1(1:ij),y1(1:ij)) / trapz(x,y) <= .95
+            CI975 = x1(ij);
+            id_975=ij;
+            break;
+        end
+    end
+    
+    disp(['W_' num2str(i) ':  CI 95% [' num2str(CI025, '%.2f') ' ' num2str(CI975, '%.2f') ']'])
+%     scatter(CI025, y1(id_025)/sc_y+4-i, 'filled', 'k')
+%     scatter(CI975, y1(id_975)/sc_y+4-i, 'filled', 'k')
+    
+    plot([CI975 CI975], [4-i y1(id_975)/sc_y+4-i+.1],'k', 'LineWidth', 1.1)
+    plot([CI025 CI025], [4-i y1(id_025)/sc_y+4-i+.1],'k', 'LineWidth', 1.1)
+
+%     xline(CI975, ':k', 'LineWidth', 1.5)
+    
+    
+%     xline(w_true(ii),':k', 'LineWidth', 1.5)
+    
+%     set(h,'ytick',[]);
+%     title(sprintf('%s',names{i}))
+    % add prior density
+    if exist('results','var')
+      ii  = inds(i);
+      mus = results.prior(ii,:);
+      mu  = mus(1);
+      sig = mus(2);
+      mi  = results.limits(ii,1);
+      ma  = results.limits(ii,2);
+      if ~isinf(sig)
+        if isfield(results,'priortype') & results.priortype == -1 
+          % lognormal prior for all values
+          xdr=x(end)-x(1);
+          hold on
+          xlim=get(gca,'xlim');
+%         xp = linspace(max(mi,mu-3*sig),min([ma,mu+3*sig,x(end)+xdr]));
+          xp = linspace(xlim(1),xlim(2));
+          yp = lognorpf(xp,log(mu),sig^2);
+          yn = lognordf((mi-mu)/sig)+1-lognordf((ma-mu)/sig); % area outside bounds
+          plot([xp(1),xp],[0,yp./(1-yn)],'--k')
+          hold off
+%           set(gca,'ytick',[])
+        else
+          xdr=x(end)-x(1);
+          hold on
+          xlim=get(gca,'xlim');
+        % xp = linspace(max(mi,mu-3*sig),min([ma,mu+3*sig,x(end)+xdr]));
+          xp = linspace(max(mi,mu-3*sig),min([ma,mu+3*sig]));
+          yp = norpf(xp,mu,sig^2);
+          yn = nordf((mi-mu)/sig)+1-nordf((ma-mu)/sig); % area outside bounds
+          plot([xp(1),xp],[0,yp./(1-yn)],'--k')
+          hold off
+          set(gca,'xlim',xlim);
+%           set(gca,'ytick',[])
+        end
+      end
+      % force axis to min max region
+%       xlim = get(h,'xlim');
+%       if xlim(1) < mi
+%         xlim(1) = mi-(min(xlim(2),ma)-mi)*0.05;
+%       end
+%       if xlim(2) > ma
+%         xlim(2) = ma+(ma-max(xlim(1),mi))*0.05;
+%       end
+      if ~isinf(sig)
+      %  xlim(2) = min(xlim(2),xp(end));
+      %  xlim(1) = max(xlim(1),xp(1));
+      end
+%       set(h,'xlim',xlim);
+    end
+  end
+  
   case('denspanel2')
   np  = length(inds);
   ns1 = ceil(sqrt(np));

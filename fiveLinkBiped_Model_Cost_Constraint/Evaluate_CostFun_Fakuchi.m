@@ -11,6 +11,10 @@
 % Cost is the integral of torque-squared.
 
 clear all
+close all
+
+
+addpath ../data/
 
 dt = .01;
 
@@ -40,6 +44,9 @@ Demo = load('Demos_for_IOC.mat');
 
 Time = Demo.Baseline.time;
 t = Time;
+
+% t = linspace()
+
 % GRFs
 GRF_r_N = Demo.grf_r_N;
 GRF_l_N = Demo.grf_l_N;
@@ -108,7 +115,7 @@ dddq = [dddq(:,1) dddq];
 
 
 % task kinematics
-[P, G] = getPoints(q,p);
+[P, G] = getPoints(t',q,p,1);
 
 dP = diff(P')'/(t(end)/(length(t)-1));
 dP = [dP(:,1) dP];
@@ -577,6 +584,7 @@ step_time = (l_TO-r_TO);
  clear all
  
  
+WBDS_Table = readtable('../data/WBDSinfo.xlsx','ReadVariableNames',true);
  
  param = getPhysicalParameters();
 p=param;
@@ -616,19 +624,32 @@ ID_Eval = 0;
 Tr_or_Ov =['T','O'];
 ID_Subj_actual = 0;
 for ID_Subj = 1:42
+    ID_Subj
     if ID_Subj~=[5, 17, 41,  10, 15, 36, 39, 24, 26, 40, 42]
         ID_Subj_actual = ID_Subj_actual+1;
     cycle_stack_id = 0;
     Q1=[]; Q2=[]; Q4=[]; Q5=[];
+    
+    
     for ID_Speed = 1:No_Speed
         speed_stack_id = 0;
         %         for i = 1:2
-        if isfile(['data/WBDS' num2str(ID_Subj,'%02.f') 'walkT' num2str(ID_Speed,'%02.f') 'knt.txt'])
+        knt_filename = ['WBDS' num2str(ID_Subj,'%02.f') 'walkT' num2str(ID_Speed,'%02.f') 'mkr.txt'];
+        if isfile(['../data/' knt_filename])
 %             Kinetic_data = importdata(['data/WBDS' num2str(ID_Subj,'%02.f') 'walkT' num2str(ID_Speed,'%02.f') 'knt.txt']);
-            Kinetic_data = importdata(['data/WBDS' num2str(ID_Subj,'%02.f') 'walkT' num2str(ID_Speed,'%02.f') 'grf.txt']);
+            Kinetic_data = importdata(['../data/WBDS' num2str(ID_Subj,'%02.f') 'walkT' num2str(ID_Speed,'%02.f') 'grf.txt']);
             rep = 2;
             shift1 = -25;
             shift0 = 50;
+            
+            V_tr = WBDS_Table.GaitSpeed_m_s_(strcmp(WBDS_Table.FileName, knt_filename));
+            
+            if isempty(V_tr)
+                V_tr = mean(V_tr_all(:, ID_Speed));
+            end
+
+            V_tr_all(ID_Subj, ID_Speed) =  V_tr;
+            
             
             grf_resamp = interp1((1:9000)',Kinetic_data.data,linspace(1,9000,4500));
             GRF_r_N = max(lowpass(grf_resamp(:,10),.8,100),0);
@@ -748,7 +769,7 @@ for ID_Subj = 1:42
             
             
             
-            for limb_side = 1:1
+            for limb_side = 1:2
                 TO = [];
                 HS = [];
                 
@@ -812,8 +833,15 @@ for ID_Subj = 1:42
                 
                 q    = Limb_Angles(:,TO(cycle_idx):HS(cycle_idx));
                 time = walk_data.data(TO(cycle_idx):HS(cycle_idx),1)' - walk_data.data(TO(cycle_idx),1);
+                
+%                 time_data_resamp = linspace(0, time(end), 11);
+%                 q_data_resamp    = interp1(time', q', time_data_resamp')';
+                
                 Angles_Data{ID_Subj, ID_Speed, cycle_idx, limb_side} = q;
                 Time_Data{ID_Subj, ID_Speed, cycle_idx, limb_side}   = time;
+                
+                GRF_Data_L_N{ID_Subj, ID_Speed, cycle_idx, limb_side} = GRF_l_N(:,TO(cycle_idx):HS(cycle_idx));
+                GRF_Data_R_N{ID_Subj, ID_Speed, cycle_idx, limb_side} = GRF_r_N(:,TO(cycle_idx):HS(cycle_idx));
 %                 time = (walk_data.data(:,1)-1)*.01;
 %                 time = (0:length(q)-1)'*.01;
                 
@@ -875,78 +903,78 @@ for ID_Subj = 1:42
      
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%           
     
-    figure(102)
-%     clf;
-    subplot(2,2,1)
-    plot(time,q(2,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    subplot(2,2,3)
-    plot(time,q(1,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    subplot(2,2,2)
-    plot(time,q(4,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    subplot(2,2,4)
-    plot(time,q(5,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    
-     
-   if ID_Speed ~= [3 , 7]
-    figure(106)
-%     clf;
-    subplot(2,2,1)
-    plot(time,q(2,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    subplot(2,2,3)
-    plot(time,q(1,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    subplot(2,2,2)
-    plot(time,q(4,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    subplot(2,2,4)
-    plot(time,q(5,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    
-   end
+% % %     figure(102)
+% % % %     clf;
+% % %     subplot(2,2,1)
+% % %     plot(time,q(2,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     subplot(2,2,3)
+% % %     plot(time,q(1,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     subplot(2,2,2)
+% % %     plot(time,q(4,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     subplot(2,2,4)
+% % %     plot(time,q(5,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     
+% % %      
+% % %    if ID_Speed ~= [3 , 7]
+% % %     figure(106)
+% % % %     clf;
+% % %     subplot(2,2,1)
+% % %     plot(time,q(2,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     subplot(2,2,3)
+% % %     plot(time,q(1,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     subplot(2,2,2)
+% % %     plot(time,q(4,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     subplot(2,2,4)
+% % %     plot(time,q(5,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     
+% % %    end
     
    
-   if ID_Speed == 3 || ID_Speed==7
-    figure(107)
-%     clf;
-    subplot(2,2,1)
-    plot(time,q(2,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    subplot(2,2,3)
-    plot(time,q(1,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    subplot(2,2,2)
-    plot(time,q(4,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    subplot(2,2,4)
-    plot(time,q(5,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    
-   end
+% % %    if ID_Speed == 3 || ID_Speed==7
+% % %     figure(107)
+% % % %     clf;
+% % %     subplot(2,2,1)
+% % %     plot(time,q(2,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     subplot(2,2,3)
+% % %     plot(time,q(1,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     subplot(2,2,2)
+% % %     plot(time,q(4,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     subplot(2,2,4)
+% % %     plot(time,q(5,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     
+% % %    end
    
    
    
-   if ID_Speed==7
-    figure(108)
-%     clf;
-    subplot(2,2,1)
-    plot(time,q(2,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    subplot(2,2,3)
-    plot(time,q(1,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    subplot(2,2,2)
-    plot(time,q(4,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    subplot(2,2,4)
-    plot(time,q(5,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
-    hold on
-    
-   end
+% % %    if ID_Speed==7
+% % %     figure(108)
+% % % %     clf;
+% % %     subplot(2,2,1)
+% % %     plot(time,q(2,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     subplot(2,2,3)
+% % %     plot(time,q(1,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     subplot(2,2,2)
+% % %     plot(time,q(4,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     subplot(2,2,4)
+% % %     plot(time,q(5,:),'LineWidth',.6, 'Color', [1-ID_Speed/10 1-ID_Speed/10 1-ID_Speed/10])
+% % %     hold on
+% % %     
+% % %    end
    
 
 %% All Subjects Trajectories
@@ -1033,6 +1061,7 @@ for ID_Subj = 1:42
                 
                 % % % % % q = q_f;
                 
+                t_t = linspace(0,t(end),1000);
                 
                 
                 dq = diff(q')'/(Time(end)/(length(Time)-1));
@@ -1043,11 +1072,33 @@ for ID_Subj = 1:42
                 dddq = [dddq(:,1) dddq];
                 
                 
+                t_int = linspace(0, t(end), 99);
+                q = interp1(t', q', t_int')';
+                dq = interp1(t', dq', t_int')';
+                ddq= interp1(t', ddq', t_int')';
+                t = t_int;
                 
-                % task kinematics
-                [P, G] = getPoints(q,p);
+                x = [q ; dq];
+                usol = dynamics_forward(t,x,ddq,p);
+                
                 
 
+                x_t = pwPoly3(t,[q;dq],[dq; ddq],t_t);
+                
+                q  = x_t(1:5,:);
+                dq = x_t(6:10,:);
+                ddq = diff(dq')'/(Time(end)/(length(Time)-1));
+                ddq = [ddq(:,1) ddq];
+                dddq = diff(ddq')'/(Time(end)/(length(Time)-1));
+                dddq = [dddq(:,1) dddq];
+                
+                u = pwPoly2(t,usol,t_t);
+                
+                % task kinematics
+%                 [P, G] = getPoints(q,p);
+                [P, G] = getPoints(t_t,q,p,V_tr);
+                
+                t = t_t;
                 
                 dP = diff(P')'/(t(end)/(length(t)-1));
                 dP = [dP(:,1) dP];
@@ -1069,8 +1120,11 @@ for ID_Subj = 1:42
 
                 
                 %%%%
-                x = [q ; dq];
-                u = dynamics_forward(t,x,ddq,p);
+                
+                
+                
+                
+                
                 
                 [u_c , du_c , ddu_c , dddu_c] = Cubic_Bspline(t , u');
                 
@@ -1224,7 +1278,7 @@ for ID_Subj = 1:42
                 
                 
                 
-                Cost_Components_Eval_Fakuchi(ID_Eval,:) = trapz(t, cost_components_traj_eval);
+                Cost_Components_Eval_Fakuchi(ID_Eval,:) = trapz(t, cost_components_traj_eval) / t(end);
                 
                 % cost_bases_eval(i,:) = simps(time,C');
                 %
@@ -1352,36 +1406,36 @@ for ID_Subj = 1:42
         
         
         
-    if ID_Speed==7
-        t_resamp = linspace(0,.38,100);
-    figure(108)
-    subplot(2,2,1)
-% %     shadedErrorBar(t_resamp, mean(Q2(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .15*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'm-')
-%     plot(t_resamp,mean(Q2(ID_Eval-speed_stack_id+1:ID_Eval,:)),'LineStyle','-',...
-%         'LineWidth',4, 'Color', [.8-ID_Speed/10 .8-ID_Speed/10 .8-ID_Speed/10])
-        shadedErrorBar(t_resamp, mean(Q2(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .05*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'c-')
-
-    subplot(2,2,3)
-%     plot(t_resamp,mean(Q1(ID_Eval-speed_stack_id+1:ID_Eval,:)),'LineStyle','-',...
-%         'LineWidth',4, 'Color', [.8-ID_Speed/10 .8-ID_Speed/10 .8-ID_Speed/10])
-% %         shadedErrorBar(t_resamp, mean(Q1(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .15*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'm-')
-        shadedErrorBar(t_resamp, mean(Q1(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .05*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'c-')
-
-    
-    subplot(2,2,2)
-%     plot(t_resamp,mean(Q4(ID_Eval-speed_stack_id+1:ID_Eval,:)),'LineStyle','-',...
-%         'LineWidth',4, 'Color', [.8-ID_Speed/10 .8-ID_Speed/10 .8-ID_Speed/10])
-% %         shadedErrorBar(t_resamp, mean(Q4(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .15*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'm-')
-        shadedErrorBar(t_resamp, mean(Q4(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .03*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'c-')
-
-    
-    subplot(2,2,4)
-%         plot(t_resamp,mean(Q5(ID_Eval-speed_stack_id+1:ID_Eval,:)),'LineStyle','-',...
-%             'LineWidth',4, 'Color', [.8-ID_Speed/10 .8-ID_Speed/10 .8-ID_Speed/10])
-% %     shadedErrorBar(t_resamp, mean(Q5(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .17*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'm-')
-    shadedErrorBar(t_resamp, mean(Q5(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .07*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'c-')
-
-    end
+% % %     if ID_Speed==7
+% % %         t_resamp = linspace(0,.38,100);
+% % %     figure(108)
+% % %     subplot(2,2,1)
+% % % % %     shadedErrorBar(t_resamp, mean(Q2(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .15*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'm-')
+% % % %     plot(t_resamp,mean(Q2(ID_Eval-speed_stack_id+1:ID_Eval,:)),'LineStyle','-',...
+% % % %         'LineWidth',4, 'Color', [.8-ID_Speed/10 .8-ID_Speed/10 .8-ID_Speed/10])
+% % %         shadedErrorBar(t_resamp, mean(Q2(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .05*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'c-')
+% % % 
+% % %     subplot(2,2,3)
+% % % %     plot(t_resamp,mean(Q1(ID_Eval-speed_stack_id+1:ID_Eval,:)),'LineStyle','-',...
+% % % %         'LineWidth',4, 'Color', [.8-ID_Speed/10 .8-ID_Speed/10 .8-ID_Speed/10])
+% % % % %         shadedErrorBar(t_resamp, mean(Q1(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .15*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'm-')
+% % %         shadedErrorBar(t_resamp, mean(Q1(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .05*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'c-')
+% % % 
+% % %     
+% % %     subplot(2,2,2)
+% % % %     plot(t_resamp,mean(Q4(ID_Eval-speed_stack_id+1:ID_Eval,:)),'LineStyle','-',...
+% % % %         'LineWidth',4, 'Color', [.8-ID_Speed/10 .8-ID_Speed/10 .8-ID_Speed/10])
+% % % % %         shadedErrorBar(t_resamp, mean(Q4(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .15*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'm-')
+% % %         shadedErrorBar(t_resamp, mean(Q4(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .03*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'c-')
+% % % 
+% % %     
+% % %     subplot(2,2,4)
+% % % %         plot(t_resamp,mean(Q5(ID_Eval-speed_stack_id+1:ID_Eval,:)),'LineStyle','-',...
+% % % %             'LineWidth',4, 'Color', [.8-ID_Speed/10 .8-ID_Speed/10 .8-ID_Speed/10])
+% % % % %     shadedErrorBar(t_resamp, mean(Q5(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .17*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'm-')
+% % %     shadedErrorBar(t_resamp, mean(Q5(ID_Eval-speed_stack_id+1:ID_Eval,:))+ .07*randn(length(t_resamp),100), {@mean,@std}, 'lineprops', 'c-')
+% % % 
+% % %     end
         
         
     end
@@ -1685,6 +1739,7 @@ t_res2 = 0:.01:2;
 sin_wave = sin(2*pi*t_res1);
 sin_wave_scaled = sin(pi*t_res2);
 sin_wave_resamp = interp1(t_res2, sin_wave_scaled, t_res1);
+
 figure(10)
 plot(sin_wave, 'LineWidth', 1.4)
 hold on
@@ -2251,14 +2306,18 @@ set(gca, ...
 % % % %     set(gcf,'Color','white','renderer','Painters','Units','Centimeters','Position',[15 1 15 12]);
 
 % dlmwrite('Cost_Comp_Eval_Traj.txt',cost_components_traj_eval)
-dlmwrite('Cost_Components_Eval_Fakuchi_AllData_NoDynamics.txt',Cost_Components_Eval_Fakuchi)
-dlmwrite('Cost_Components_Eval_Fakuchi_AllData.txt',Cost_Components_Eval_Fakuchi)
+
+
+analysis_date_str = string(datetime('now','Format', 'yyyy-MM-DD'));
+
+dlmwrite(['Cost_Components_Eval_Fakuchi_AllData_NoDynamics_' analysis_date_str '.txt'],Cost_Components_Eval_Fakuchi)
+dlmwrite(['Cost_Components_Eval_Fakuchi_AllData_' analysis_date_str '.txt'],Cost_Components_Eval_Fakuchi)
 
 
 
 Cost_Components = Cost_Components_Eval_Fakuchi;
 
-save('Fukuchi_Features_DTW_RMS.mat',...
+save(['Fukuchi_Features_DTW_RMS_' analysis_date_str '.mat'],...
     'Cost_Components_Subjects', 'Cost_Components_Subjects_Speeds', 'Cost_Components' , ...  
     'DTW_Sum_Subjects'        , 'DTW_Sum_Subjects_Speeds'        , 'DTW_Sum'         , ...
     'RMSE_Sum_Subjects'       , 'RMSE_Sum_Subjects_Speeds'       , 'RMSE_Sum'               );
@@ -2273,7 +2332,7 @@ save('Fukuchi_Features_DTW_RMS.mat',...
 % end
     
 
-dlmwrite('Cost_Deviation_Eval_y_forPLSR.txt',Deviation_Eval_mean)
+dlmwrite(['Cost_Deviation_Eval_y_forPLSR_' analysis_date_str '.txt'],Deviation_Eval_mean)
 
 Q_ensemble(1,:) = mean(Q1,1);
 Q_ensemble(2,:) = mean(Q2,1);
@@ -2536,3 +2595,224 @@ for i = 1:len_cost
 end
 Rsq = reshape(Rsq',1,len_cost*len_cost);
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% Interpolation Functions
+
+function x = pwPoly2(tGrid,xGrid,t)
+% x = pwPoly2(tGrid,xGrid,t)
+%
+% This function does piece-wise quadratic interpolation of a set of data,
+% given the function value at the edges and midpoint of the interval of
+% interest.
+%
+% INPUTS:
+%   tGrid = [1, 2*n-1] = time grid, knot idx = 1:2:end
+%   xGrid = [m, 2*n-1] = function at each grid point in tGrid
+%   t = [1, k] = vector of query times (must be contained within tGrid)
+%
+% OUTPUTS:
+%   x = [m, k] = function value at each query time
+%
+% NOTES:
+%   If t is out of bounds, then all corresponding values for x are replaced
+%   with NaN
+%
+
+nGrid = length(tGrid);
+if mod(nGrid-1,2)~=0 || nGrid < 3
+    error('The number of grid-points must be odd and at least 3');
+end
+
+% Figure out sizes
+n = floor((length(tGrid)-1)/2);
+m = size(xGrid,1);
+k = length(t);
+x = zeros(m, k);
+
+% Figure out which segment each value of t should be on
+edges = [-inf, tGrid(1:2:end), inf];
+[~, bin] = histc(t,edges);
+
+% Loop over each quadratic segment
+for i=1:n
+    idx = bin==(i+1);
+    if sum(idx) > 0
+        gridIdx = 2*(i-1) + [1,2,3];
+        x(:,idx) = quadInterp(tGrid(gridIdx),xGrid(:,gridIdx),t(idx));
+    end
+end
+
+% Replace any out-of-bounds queries with NaN
+outOfBounds = bin==1 | bin==(n+2);
+x(:,outOfBounds) = nan;
+
+% Check for any points that are exactly on the upper grid point:
+if sum(t==tGrid(end))>0
+    x(:,t==tGrid(end)) = xGrid(:,end);
+end
+
+end
+
+
+function x = quadInterp(tGrid,xGrid,t)
+%
+% This function computes the interpolant over a single interval
+%
+% INPUTS:
+%   tGrid = [1, 3] = time grid
+%   xGrid = [m, 3] = function grid
+%   t = [1, p] = query times, spanned by tGrid
+%
+% OUTPUTS:
+%   x = [m, p] = function at query times
+%
+
+% Rescale the query points to be on the domain [-1,1]
+t = 2*(t-tGrid(1))/(tGrid(3)-tGrid(1)) - 1;
+
+% Compute the coefficients:
+a = 0.5*(xGrid(:,3) + xGrid(:,1)) - xGrid(:,2);
+b = 0.5*(xGrid(:,3)-xGrid(:,1));
+c = xGrid(:,2);
+
+% Evaluate the polynomial for each dimension of the function:
+p = length(t);
+m = size(xGrid,1);
+x = zeros(m,p);
+tt = t.^2;
+for i=1:m
+    x(i,:) = a(i)*tt + b(i)*t + c(i);
+end
+
+end
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  Functions for interpolation of the state solution
+%
+
+
+
+
+function x = pwPoly3(tGrid,xGrid,fGrid,t)
+% x = pwPoly3(tGrid,xGrid,fGrid,t)
+%
+% This function does piece-wise quadratic interpolation of a set of data,
+% given the function value at the edges and midpoint of the interval of
+% interest.
+%
+% INPUTS:
+%   tGrid = [1, 2*n-1] = time grid, knot idx = 1:2:end
+%   xGrid = [m, 2*n-1] = function at each grid point in time
+%   fGrid = [m, 2*n-1] = derivative at each grid point in time
+%   t = [1, k] = vector of query times (must be contained within tGrid)
+%
+% OUTPUTS:
+%   x = [m, k] = function value at each query time
+%
+% NOTES:
+%   If t is out of bounds, then all corresponding values for x are replaced
+%   with NaN
+%
+
+nGrid = length(tGrid);
+if mod(nGrid-1,2)~=0 || nGrid < 3
+    error('The number of grid-points must be odd and at least 3');
+end
+
+% Figure out sizes
+n = floor((length(tGrid)-1)/2);
+m = size(xGrid,1);
+k = length(t);
+x = zeros(m, k);
+
+% Figure out which segment each value of t should be on
+edges = [-inf, tGrid(1:2:end), inf];
+[~, bin] = histc(t,edges);
+
+% Loop over each quadratic segment
+for i=1:n
+    idx = bin==(i+1);
+    if sum(idx) > 0
+        kLow = 2*(i-1) + 1;
+        kMid = kLow + 1;
+        kUpp = kLow + 2;
+        h = tGrid(kUpp)-tGrid(kLow);
+        xLow = xGrid(:,kLow);
+        fLow = fGrid(:,kLow);
+        fMid = fGrid(:,kMid);
+        fUpp = fGrid(:,kUpp);
+        alpha = t(idx) - tGrid(kLow);
+        x(:,idx) = cubicInterp(h,xLow, fLow, fMid, fUpp,alpha);
+    end
+end
+
+% Replace any out-of-bounds queries with NaN
+outOfBounds = bin==1 | bin==(n+2);
+x(:,outOfBounds) = nan;
+
+% Check for any points that are exactly on the upper grid point:
+if sum(t==tGrid(end))>0
+    x(:,t==tGrid(end)) = xGrid(:,end);
+end
+
+end
+
+
+function x = cubicInterp(h,xLow, fLow, fMid, fUpp,del)
+%
+% This function computes the interpolant over a single interval
+%
+% INPUTS:
+%   h = time step (tUpp-tLow)
+%   xLow = function value at tLow
+%   fLow = derivative at tLow
+%   fMid = derivative at tMid
+%   fUpp = derivative at tUpp
+%   del = query points on domain [0, h]
+%
+% OUTPUTS:
+%   x = [m, p] = function at query times
+%
+
+%%% Fix matrix dimensions for vectorized calculations
+nx = length(xLow);
+nt = length(del);
+xLow = xLow*ones(1,nt);
+fLow = fLow*ones(1,nt);
+fMid = fMid*ones(1,nt);
+fUpp = fUpp*ones(1,nt);
+del = ones(nx,1)*del;
+
+a = (2.*(fLow - 2.*fMid + fUpp))./(3.*h.^2);
+b = -(3.*fLow - 4.*fMid + fUpp)./(2.*h);
+c = fLow;
+d = xLow;
+
+x = d + del.*(c + del.*(b + del.*a));
+
+end
+
+
+
+
+
+

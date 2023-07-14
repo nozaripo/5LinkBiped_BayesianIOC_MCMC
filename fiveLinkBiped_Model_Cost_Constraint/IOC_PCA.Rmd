@@ -1,0 +1,2085 @@
+library(sparsepca)
+
+setwd('C:/Users/nozaripo/OneDrive - University of Southern California/OptimTraj-master/demo/fiveLinkBiped - IOC')
+
+X = read.csv('Cost_Comp_Eval.txt',header=F)
+X = read.csv('Cost_Comp_Eval_Traj.txt',header=F)
+X = read.csv('Cost_Components_Eval_Fakuchi.txt',header=F)
+X = read.csv('Cost_Components_Eval_Fakuchi_AllData_NoDynamics.txt',header=F)
+X = read.csv('Cost_Components_Eval_Fakuchi_AllData.txt',header=F)
+
+#X <- subset (X, select = -5)
+
+
+#y = read.csv('C:/Users/nozaripo/OneDrive - University of Southern California/PCA_Y.txt',header=F)
+y = read.csv('Cost_Deviation_Eval_y_forPLSR.txt',header=F)
+
+
+X.scaled = scale(X, center = TRUE, scale = TRUE)
+y.scaled = scale(y, center = TRUE, scale = TRUE)
+
+
+num.Component = dim(X)[2]
+#TSS = sum((y-mean(t(y)))^2)
+
+
+numSteps =1000
+
+
+resid.test  <- matrix(0L, nrow = numSteps, ncol = 10)
+resid.train <- matrix(0L, nrow = numSteps, ncol = 10)
+mean.resid  <- matrix(0L, nrow = numSteps, ncol = 1)
+Var.Exp     <- matrix(0L, nrow = numSteps, ncol = 1)
+
+var.explained = matrix(0L, nrow = numSteps, ncol = 1)
+total.var     = matrix(0L, nrow = numSteps, ncol = 1)
+
+var.explained.spca = matrix(0L, nrow = numSteps, ncol = num.Component)
+
+
+
+
+
+
+
+############# STOPPPPPPPPPPPPPPPPPPPPP
+
+#####################
+for (i in seq(0, numSteps, by=1)){
+
+sparsity = 5e-1*i/numSteps
+
+
+for (nComp in seq(1, num.Component, by=1)){
+  
+aa6 = robspca(X, k = nComp, alpha = sparsity, beta = 1e-04, gamma = 100,
+          center = TRUE, scale = TRUE, max_iter = 100000, tol = 1e-04,
+          verbose = TRUE)  
+# aa6=spca(X, k = nComp, alpha = sparsity, beta = 1e-04, center = TRUE,
+#          scale = TRUE, max_iter = 3000, tol = 1e-06, verbose = TRUE)
+
+#View(aa6)
+
+#View(aa6$loadings)
+
+var.explained.spca[i,nComp] = sum(aa6$sdev^2)
+}
+}
+
+var.exp.normal = var.explained.spca/max(var.explained.spca)
+
+
+# sp = seq(1e-5, 1e-5+((numSteps-1)/numSteps)*(2e-1 - 1e-5), by=(2e-1 - 1e-5)/numSteps)
+sp = seq(0, ((numSteps-1)/numSteps)*5e-1, by=5e-1/numSteps)
+
+
+matplot(sp, var.exp.normal, type = "l", lty = 1:1, lwd = .5, pch = NULL,
+        col = 1:5, cex = NULL, bg = NA,
+        xlab = NULL, ylab = NULL, xlim = c(0,.11), ylim = c(.4,1), add = FALSE)
+
+
+
+sparsity = 5e-1*31/numSteps
+
+aa6 = robspca(X, k = 3, alpha = sparsity, beta = 1e-04, gamma = 100,
+              center = TRUE, scale = TRUE, max_iter = 100000, tol = 1e-05,
+              verbose = TRUE)
+sum(aa6$sdev[1:5]^2)/max(var.explained.spca)
+sum(aa6$sdev^2)/max(var.explained.spca)
+
+
+
+# with bigger sparsity
+sparsity = 5e-2*300/numSteps
+
+aa6 = robspca(X, k = 5, alpha = sparsity, beta = 1e-04, gamma = 100,
+              center = TRUE, scale = TRUE, max_iter = 100000, tol = 1e-05,
+              verbose = TRUE)
+sum(aa6$sdev[1:5]^2)/max(var.explained.spca)
+sum(aa6$sdev^2)/max(var.explained.spca)
+
+
+
+
+
+
+
+
+
+
+var.explained.spca.15 = matrix(0L, nrow = numSteps, ncol = num.Component)
+
+#####################################################################
+for (i in seq(0, numSteps, by=1)){
+  
+  sparsity = 5e-2*i/numSteps
+  
+  aa6 = robspca(X, k = num.Component, alpha = sparsity, beta = 1e-04, gamma = 100,
+                center = TRUE, scale = TRUE, max_iter = 100000, tol = 1e-04,
+                verbose = TRUE)  
+  
+  for (nComp in seq(1, num.Component, by=1)){
+    
+  var.explained.spca.15[i,nComp] = sum(aa6$sdev[1:nComp]^2)
+  
+  }
+}
+  
+
+var.exp.normal.15 = var.explained.spca.15/max(var.explained.spca.15)
+
+sp = seq(0, ((numSteps-1)/numSteps)*5e-2, by=5e-2/numSteps)
+
+
+matplot(sp, var.exp.normal.15, type = "l", lty = 1:1, lwd = 2, pch = NULL,
+        col = 1:16, cex = NULL, bg = NA,
+        main = "Variance Explained for Different PC Numbers and Sparsity", xlab = "Sparsity", ylab = "VAF", 
+        xlim = c(0,.06), ylim = c(.4,1), add = FALSE)
+legend("topright",                              # Add legend to plot
+       legend = c("#PCs = 1", "#PCs = 2", 
+                  "#PCs = 3" , "#PCs = 4" , "#PCs = 5" , "#PCs = 6" , "#PCs = 7"),
+       col = 1:16,
+       lwd = 2)
+
+View(var.exp.normal.15)
+
+##################################################################
+
+sparsity = 5e-2*118/numSteps
+sparsity = 5e-2*132/numSteps
+
+sparsity = 0
+
+sparsity = 5e-2*200/numSteps
+
+sparsity = 5e-2*150/numSteps
+sparsity = 5e-2*0/numSteps
+
+aa6.15 = robspca(X, k = nComp, alpha = sparsity, beta = 1e-04, gamma = 100,
+              center = TRUE, scale = TRUE, max_iter = 100000, tol = 1e-05,
+              verbose = TRUE)
+sum(aa6.15$sdev[1:4]^2)/max(var.explained.spca.15)
+
+View(aa6.15$loadings)
+
+sum(aa6.15$sdev^2)/max(var.explained.spca.15)
+
+# attach(aa6)
+# 
+# weights = loadings[,1:2]
+# 
+# 
+# Reg.data = as.matrix(X.scaled)%*%as.matrix(weights)
+# 
+# 
+# 
+# for (j in seq(1, 10, by=1)){
+#   
+#   test = seq(40*(j-1)+1,40*j, by=1)
+#   
+#   X.test  = Reg.data[test,]
+#   X.train = Reg.data[-test,]
+#   
+#   y.test  = y[test,1]
+#   y.train = y[-test,1]
+#   
+#   
+#   feat1 = X.train[,1]
+#   feat2 = X.train[,2]
+#   
+#   feat = cbind(feat1,feat2)
+#   
+#   
+#   lm.fit = lm(y.train~feat-1)
+#   
+#   resid.train[i,j] = sum(lm.fit$residuals^2)
+#   
+#   feat1 = X.test[,1]
+#   feat2 = X.test[,2]
+#   
+#   feat = cbind(feat1,feat2)
+#   
+#   yy = predict(lm.fit, data.frame(feat=feat))
+#   
+#   resid.test[i,j] = sum((yy-y.test)^2)
+# }
+# 
+# mean.resid[i,1] = mean(resid.test[i,])
+# 
+# Var.Exp[i,1] = 1-mean.resid[i,1]/TSS
+# }
+  
+
+
+
+library(caret)
+
+
+mean.resid  <- matrix(0L, nrow = numSteps, ncol = 1)
+
+numSteps=100
+for (i in seq(0, numSteps, by=1)){
+  
+  sparsity = 5e-2*i/numSteps
+  
+  aa6 = robspca(X, k = num.Component, alpha = sparsity, beta = 1e-04, gamma = 100,
+                center = TRUE, scale = TRUE, max_iter = 1000, tol = 1e-05,
+                verbose = TRUE)  
+  
+  
+  X.Principal = as.matrix(X.scaled)%*%as.matrix(aa6$loadings)
+
+  Results.lm <- lm(y.scaled ~ X.Principal)
+  
+  
+#  train_control <- trainControl(method="cv", number=10)
+#  # train the model
+#  model <- train(y.scaled ~ X.Principal, trControl=train_control)
+#  # summarize results
+  
+#  print(model)
+  
+  
+#  summary(Results.lm)
+  
+  mean.resid[i,1] = sqrt(mean(Results.lm$residuals^2))
+  
+#  for (nComp in seq(1, num.Component, by=1)){
+    
+#    var.explained.spca.15[i,nComp] = sum(aa6$sdev[1:nComp]^2)
+    
+#  }
+
+}
+
+min(mean.resid)
+
+sd(mean.resid)
+
+
+View(mean.resid)
+
+
+
+sparsity = 5e-2*6/numSteps
+
+aa6 = robspca(X, k = num.Component, alpha = sparsity, beta = 1e-04, gamma = 100,
+              center = TRUE, scale = TRUE, max_iter = 1000, tol = 1e-05,
+              verbose = TRUE)
+
+View(aa6$loadings)
+
+#####################
+# for (i in seq(1, numSteps, by=1)){
+#   
+#   sparsity = 1e-5+((i-1)/numSteps)*(1e-2 - 1e-5)  
+#   
+#   
+#   # for (Ncomp in seq(1, 15, by=1)){
+#   # Ncomp = 2
+#   
+#   aa6=spca(X.scaled, k = NULL, alpha = sparsity, beta = 1e-04, center = TRUE,
+#            scale = FALSE, max_iter = 3000, tol = 1e-06, verbose = TRUE)
+#   
+#   #View(aa6)
+#   
+#   #View(aa6$loadings)
+#   
+#   var.temp = aa6$sdev^2
+#   total.var[i,1]= sum(aa6$sdev^2)
+#   var.explained[i,1] = ((var.temp[1]+var.temp[2])/total.var[i,1])*100
+#   # }
+#   
+# 
+# }
+
+
+
+
+
+
+
+
+
+## install BiocManager if not installed if (!requireNamespace("BiocManager", quietly = TRUE))     
+install.packages("BiocManager") 
+## install mixOmics 
+BiocManager::install('mixOmics')
+######################################################
+## alternatively: 
+install.packages("devtools")
+# then load
+library(devtools)
+install_github("mixOmicsTeam/mixOmics")
+
+
+
+detach("package:spls", unload=TRUE)
+library(mixOmics)
+
+################################################ spls
+N.Comp = 16
+rss = matrix(0L, nrow = N.Comp , ncol = N.Comp )
+MSPE= matrix(0L, nrow = N.Comp , ncol = N.Comp )
+
+library(MASS)
+library(lattice)
+library(ggplot2)
+library(mixOmics)
+
+X = read.csv('Cost_Components_Eval_Fakuchi_AllData.txt',header=F)
+y = read.csv('Cost_Deviation_Eval_y_forPLSR.txt',header=F)
+
+
+N.Comp = 16
+
+
+
+
+for (i.Comp in seq(1, N.Comp, by=1)){
+  print(i.Comp)
+  for (i.keep in seq(1, N.Comp, by=1)){
+    spls_output = spls(X,y,ncomp = i.Comp,
+                       mode = c("regression", "canonical", "invariant", "classic"),
+                       keepX=rep(i.keep, i.Comp),
+                       scale = TRUE,
+                       tol = 1e-06,
+                       max.iter = 3000,
+                       near.zero.var = FALSE,
+                       logratio="none",
+                       multilevel=NULL,
+                       all.outputs = TRUE)
+    
+    CV = perf(spls_output, validation = "Mfold", folds = 10, nrepeat = 10, progressBar = FALSE )
+    
+    # rss[i.keep,i.Comp] = CV$RSS[-(1:i.Comp)]
+    # rss[i.keep,i.Comp]  = sum(CV$measures$RSS$summary$mean)
+    MSPE[i.keep,i.Comp] = CV$measures$MSEP$summary$mean[i.Comp]
+    sprintf('i.keep = %i', i.keep)
+  }
+}
+
+
+
+
+
+
+
+
+
+
+########
+for (i.Comp in seq(1, N.Comp, by=1)){
+  print(i.Comp)
+  for (i.keep in seq(1, N.Comp, by=1)){
+    spls_output = spls(X,y,ncomp = i.Comp,
+                       mode = c("regression", "canonical", "invariant", "classic"),
+                       keepX=rep(i.keep, i.Comp),
+                       scale = TRUE,
+                       tol = 1e-06,
+                       max.iter = 3000,
+                       near.zero.var = FALSE,
+                       logratio="none",
+                       multilevel=NULL,
+                       all.outputs = TRUE)
+    
+    CV2 = perf(spls_output, validation = "Mfold", folds = 10, nrepeat = 10, progressBar = FALSE )
+    
+    # rss[i.keep,i.Comp] = CV$RSS[-(1:i.Comp)]
+    # rss[i.keep,i.Comp]  = sum(CV$measures$RSS$summary$mean)
+    MSPE[i.keep,i.Comp] = CV$measures$MSEP$summary$mean[i.Comp]
+    sprintf('i.keep = %i', i.keep)
+  }
+}
+#################
+
+
+
+
+
+
+
+rand_vect <- function(N, M, sd = 1, pos.only = TRUE) {
+  vec <- rnorm(N, M/N, sd)
+  if (abs(sum(vec)) < 0.01) vec <- vec + 1
+  vec <- round(vec / sum(vec) * M)
+  deviation <- M - sum(vec)
+  for (. in seq_len(abs(deviation))) {
+    vec[i] <- vec[i <- sample(N, 1)] + sign(deviation)
+  }
+  if (pos.only) while (any(vec < 0)) {
+    negs <- vec < 0
+    pos  <- vec > 0
+    vec[negs][i] <- vec[negs][i <- sample(sum(negs), 1)] + 1
+    vec[pos][i]  <- vec[pos ][i <- sample(sum(pos ), 1)] - 1
+  }
+  vec
+}
+
+
+rand_vect(4, 3)
+
+
+
+
+
+i.index = 0
+keep.vector = matrix(0L, nrow = N.Comp*(N.Comp-1)*50 , ncol = 16 )
+MSPE.vector = matrix(0L, nrow = N.Comp*(N.Comp-1)*50 , ncol = 1 )
+i.Comp.index=matrix(0L, nrow = N.Comp*(N.Comp-1)*50 , ncol = 1 )
+i.keep.index=matrix(0L, nrow = N.Comp*(N.Comp-1)*50 , ncol = 1 )
+
+########
+for (i.Comp in seq(3, N.Comp, by=1)){
+  print(i.Comp)
+  for (i.keep in seq(1, N.Comp-1, by=1)){
+    for (i.rnd in seq(1,50, by=1)){
+      i.index= i.index+1
+      
+      #keep.2comps = rep(i.keep,min(i.Comp,2))
+      
+      keep.vector[i.index,] = c(rep(i.keep,2), (rand_vect(N.Comp-2,N.Comp-i.keep-1)+1))
+      i.Comp.index[i.index,1] = i.Comp
+      i.keep.index[i.index,1] = i.keep
+      spls_output2 = spls(X,y,ncomp = i.Comp,
+                         mode = c("regression", "canonical", "invariant", "classic"),
+                         keepX=keep.vector[i.index,],
+                         scale = TRUE,
+                         tol = 1e-06,
+                         max.iter = 3000,
+                         near.zero.var = FALSE,
+                         logratio="none",
+                         multilevel=NULL,
+                         all.outputs = TRUE)
+      
+      CV2 = perf(spls_output2, validation = "Mfold", folds = 5, nrepeat = 5, progressBar = FALSE )
+        
+      # rss[i.keep,i.Comp] = CV$RSS[-(1:i.Comp)]
+      # rss[i.keep,i.Comp]  = sum(CV$measures$RSS$summary$mean)
+      #MSPE[i.keep,i.Comp] = CV$measures$MSEP$summary$mean[i.Comp]
+      #MSPE.vector[i.index,1] = CV$measures$MSEP$summary$mean[i.Comp]
+      MSPE.vector[i.index,1] = sum(CV2$measures$MSEP$summary$mean)
+      
+      sprintf('i.keep = %i', i.keep)
+    }
+  }
+}
+#################
+
+
+
+
+
+
+
+i.index = 0
+keep.vector3 = matrix(0L, nrow = N.Comp*(N.Comp-1)*50 , ncol = 16 )
+MSPE.vector3 = matrix(0L, nrow = N.Comp*(N.Comp-1)*50 , ncol = 1 )
+i.Comp.index3=matrix(0L, nrow = N.Comp*(N.Comp-1)*50 , ncol = 1 )
+i.keep.index3=matrix(0L, nrow = N.Comp*(N.Comp-1)*50 , ncol = 1 )
+########
+for (i.Comp in seq(3, N.Comp, by=1)){
+  print(i.Comp)
+  for (i.keep in seq(3, N.Comp-1, by=1)){
+    for (i.rnd in seq(1,50, by=1)){
+      i.index= i.index+1
+      
+      #keep.2comps = rep(i.keep,min(i.Comp,2))
+      
+      keep.vector3[i.index,] = c(i.keep, (rand_vect(i.Comp-1,N.Comp-i.keep-(i.Comp-1))+1), matrix(0L, nrow = 1 , ncol = N.Comp-1-(i.Comp-1) ))
+      i.Comp.index3[i.index,1] = i.Comp
+      i.keep.index3[i.index,1] = i.keep
+      spls_output3 = spls(X,y,ncomp = i.Comp,
+                          mode = c("regression", "canonical", "invariant", "classic"),
+                          keepX=keep.vector3[i.index,1:i.Comp],
+                          scale = TRUE,
+                          tol = 1e-06,
+                          max.iter = 3000,
+                          near.zero.var = FALSE,
+                          logratio="none",
+                          multilevel=NULL,
+                          all.outputs = TRUE)
+      
+      CV3 = perf(spls_output3, validation = "Mfold", folds = 5, nrepeat = 5, progressBar = FALSE )
+      
+      # rss[i.keep,i.Comp] = CV$RSS[-(1:i.Comp)]
+      # rss[i.keep,i.Comp]  = sum(CV$measures$RSS$summary$mean)
+      #MSPE[i.keep,i.Comp] = CV$measures$MSEP$summary$mean[i.Comp]
+      #MSPE.vector[i.index,1] = CV$measures$MSEP$summary$mean[i.Comp]
+      MSPE.vector3[i.index,1] = sum(CV2$measures$MSEP$summary$mean)/i.Comp
+      
+      sprintf('i.keep = %i', i.keep)
+    }
+  }
+}
+#################
+
+
+
+
+
+
+
+
+
+MSPE.mean = sum(MSPE)/ (N.Comp*N.Comp/2 + N.Comp/2)
+
+MSPE.mean.sqrd = (MSPE-MSPE.mean)^2
+MSPE.mean.sqrd[MSPE.mean.sqrd>1e-2] = 0
+
+MSPE.sd = sqrt( sum(MSPE.mean.sqrd)/(N.Comp*N.Comp/2 + N.Comp/2 -1) )
+
+
+# ggplot(MSE.SEP.frame, aes(x=components, y = sparsity, fill = SE)) + geom_tile(color = "white") + scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(MSE.SEP.frame[,3]), 
+#                                                                                                                      limit = c(min(MSE.SEP.frame[,3]), max(MSE.SEP.frame[,3])), space = "Lab" ) + 
+#  labs(x = "Latent Variables", y =  "Sparsity", title = "SEs") +  scale_x_continuous(breaks = c(1:10)) + scale_y_continuous(breaks = c(1:10))
+
+components = c(1:N.Comp)
+sparsity   = c(1:N.Comp)
+
+
+# ggplot(as.data.frame(MSPE), aes(x=components, y = sparsity, fill = SE)) + geom_tile(color = "white") + scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = MSPE.mean, 
+#                                                                                                                      limit = c(min(MSPE[1:8,1:8]), max(MSPE[,16])), space = "Lab" ) + 
+#  labs(x = "Latent Variables", y =  "Sparsity", title = "SEs") +  scale_x_continuous(breaks = c(1:N.Comp)) + scale_y_continuous(breaks = c(1:N.Comp))
+ ggplot(as.data.frame(MSPE), aes(x=components, y = sparsity)) + geom_tile(color = "white") + scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = MSPE.mean, 
+                                                                                                                             limit = c(min(MSPE), max(MSPE)), space = "Lab" ) + 
+   labs(x = "Latent Variables", y =  "Sparsity", title = "SEs") +  scale_x_continuous(breaks = c(1:N.Comp)) + scale_y_continuous(breaks = c(1:N.Comp))
+ 
+ values <- runif(16, 0, 5)
+ 
+ ggplot(as.data.frame(MSPE), aes(x = components, y = sparsity) , fill=values) + 
+   geom_tile(aes(fill = values), color = "white", size = 1) + 
+   scale_fill_gradient(low = "gray95", high = "tomato") + 
+   xlab("characteristics") + 
+   theme_grey(base_size = 20) + 
+   ggtitle("Heatmap (ggplot)") + 
+   theme(axis.ticks = element_blank(), 
+         panel.background = element_blank(), 
+         plot.title = element_text(size = 12, colour = "gray50")) 
+
+ 
+ 
+ ggplot(as.data.frame(MSPE), aes(x = components, y = sparsity) , fill=values) + 
+   geom_tile(color = "white", size = 1) + 
+   scale_fill_gradient(low = "gray95", high = "tomato") + 
+   xlab("characteristics") + 
+   theme_grey(base_size = 16) + 
+   ggtitle("Heatmap (ggplot)") + 
+   theme(axis.ticks = element_blank(), 
+         panel.background = element_blank(), 
+         plot.title = element_text(size = 12, colour = "gray50")) 
+ 
+ ggplot(as.data.frame(MSPE), aes(x = components, y = sparsity) , fill=values)
+ 
+
+i.keep = 7
+i.Comp = 6
+
+   spls_output = spls(X,y,ncomp = i.Comp,
+                      mode = c("regression", "canonical", "invariant", "classic"),
+                      keepX=rep(i.keep, i.Comp),
+                      scale = TRUE,
+                      tol = 1e-06,
+                      max.iter = 3000,
+                      near.zero.var = FALSE,
+                      logratio="none",
+                      multilevel=NULL,
+                      all.outputs = TRUE)
+
+View(spls_output$loadings$X)
+
+
+```{r}
+
+
+
+install.packages("spls")
+
+#####################################
+X = read.csv('Cost_Components_Eval_Fakuchi_AllData_NoDynamics.txt',header=F)
+y = read.csv('Cost_Deviation_Eval_y_forPLSR.txt',header=F)
+
+X.scaled = scale(X, center = TRUE, scale = TRUE)
+y.scaled = scale(y, center = TRUE, scale = TRUE)
+X = X.scaled
+y = y.scaled
+
+
+N.Comp = 16
+
+
+
+library(spls)
+
+#set.seed(2)
+cv = cv.spls(X,y , eta=seq(.1,.9,.02) , K=c(3:N.Comp-1))
+
+f = spls( X , y ,  eta = cv$eta.opt  ,  K = cv$K.opt )
+f = spls( X , y ,  eta = cv$eta.opt  ,  K = N.Comp )
+
+print(f)
+
+View(f$projection)
+
+save(MSPE, file = "saveddf.RData")
+dput(as.data.frame(MSPE), "saveddf.txt")
+
+MSPE2 <- dget("saveddf.txt")
+
+
+write.csv(MSPE, file = "saveddf.csv")
+
+
+```
+
+
+## Libraries
+
+```{r warning=F}
+library(magrittr)
+library(tidyverse)
+library(ggplot2)
+library("R.matlab")
+library(sparsepca)
+library(mixOmics)
+library(spls)
+library("RColorBrewer")
+library(pls)
+library(nsprcomp)
+library(GGally)
+library(corrplot)
+#install.packages("rospca")
+library(rospca)
+```
+
+
+
+
+
+## SPCR 
+```{r echo=F, results='hide'}
+X = read.csv('Cost_Components_Eval_Fakuchi_AllData.txt',header=F)
+y = read.csv('Cost_Deviation_Eval_y_forPLSR.txt',header=F)
+
+X = read.csv('Cost_Components_Eval_Fakuchi_AllData_2023-01-19.txt',header=F)
+y = read.csv('Cost_Deviation_Eval_y_forPLSR_2023-01-19.txt',header=F)
+
+Data = readMat('Fukuchi_Features_DTW_RMS.mat', fixNames=TRUE, drop=c("singletonLists"),
+               sparseMatrixClass=c("Matrix"), verbose=FALSE)
+
+
+setwd('C:/Users/nozaripo/Desktop/5LinkBiped_BayesianIOC_MCMC/fiveLinkBiped_Model_Cost_Constraint')
+Data = readMat('Fukuchi_Features_DTW_RMS_2023-01-19.mat', fixNames=TRUE, drop=c("singletonLists"),
+               sparseMatrixClass=c("Matrix"), verbose=FALSE)
+
+
+Features.Matrix = Data$Cost.Components.Subjects
+DTW.Vector      = Data$DTW.Sum.Subjects
+RMSE.Vector     = Data$RMSE.Sum.Subjects
+
+
+
+
+
+X = Data$Cost.Components
+y = Data$DTW.Sum
+
+X.scaled = scale(X, center = TRUE, scale = TRUE)
+y.scaled = scale(y, center = TRUE, scale = TRUE)
+X
+
+```
+
+## sparcepca::robspca
+```{r}
+aa6 = robspca(X, k = 6, alpha = .01, beta = 1e-04, gamma = 100,
+                center = T, scale = T, max_iter = 1000, tol = 1e-05, verbose = TRUE)
+
+sd(X,2)
+
+aa6$loadings
+
+cumsum(aa6$sdev^2) / aa6$var
+aa6$var
+ggcorr(aa6$scores, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+
+```
+
+
+Picking after doing dimensionality reduction allowing for 16 principal components
+
+```{r}
+numSteps=100
+
+num.Component=16
+
+X.Var  <- matrix(0L, nrow = numSteps, ncol = num.Component)
+Y.Var  <- matrix(0L, nrow = numSteps, ncol = 1)
+
+for (i in seq(0, numSteps, by=1)){
+  sparsity = 5e-2*i/numSteps
+  aa6 = robspca(X, k = num.Component, alpha = sparsity, beta = 1e-04, gamma = 100,
+                center = TRUE, scale = TRUE, max_iter = 1000, tol = 1e-05, verbose = TRUE)  
+  X.Principal = as.matrix(X.scaled)%*%as.matrix(aa6$loadings)
+  Results.lm <- lm(y.scaled ~ X.Principal)
+  # X.Var <- cumsum(pcr.cv$Xvar) / pcr.cv$Xtotvar
+  Y.Var <- apply(Results.lm$residuals[,1,], 2, function(x) 1 -mean(x^2)/mean((y.scaled-mean(y.scaled))^2))
+#  mean.resid[i,1] = sqrt(mean(Results.lm$residuals^2))
+}
+
+
+for (i in seq(0, numSteps-1, by=1)){
+  sparsity = 2e-1*i/numSteps
+  aa6 = robspca(X, k = num.Component, alpha = sparsity, beta = 1e-04, gamma = 100,
+                center = TRUE, scale = TRUE, max_iter = 1000, tol = 1e-05, verbose = TRUE)  
+  # X.Principal = as.matrix(X.scaled)%*%as.matrix(aa6$loadings)
+  # Results.lm <- lm(y.scaled ~ X.Principal)
+  for (j in seq(1, num.Component, by=1)){
+#    X.Var[i+1,j] <- sum(aa6$eigenvalues[1:j]) / sum(aa6$eigenvalues)  
+    X.Var[i+1,j] <- sum(aa6$eigenvalues[1:j]) / num.Component  
+  }
+  X.Principal = as.matrix(X.scaled)%*%as.matrix(aa6$loadings)
+  Results.lm <- lm(y.scaled ~ X.Principal)
+  # X.Var <- cumsum(pcr.cv$Xvar) / pcr.cv$Xtotvar
+  Y.Var[i+1] <- 1 - mean(Results.lm$residuals^2)/mean((y.scaled-mean(y.scaled))^2)
+
+}
+
+```
+
+
+Plotting the VAF for different cases
+
+```{r}
+sparsity_vector = seq(0, numSteps-1, by=1)*5e-2/numSteps
+# Y.Var = apply(mean.resid, 1, function(x) 1 -x^2/mean((y.scaled-mean(y.scaled))^2))
+
+pcr.VarExplained.df <- data.frame(sparsity_vector, Y = Y.Var, X.Var) %>%
+  pivot_longer(cols = 3:8, names_to = "Variables", values_to = "Var.Values")
+
+cc <- scales::seq_gradient_pal("#C02F92FF", "#440154BB", "Lab")(seq(0,1,length.out=10))
+
+library("RColorBrewer")
+cc <- c('red', brewer.pal(n = 9, name = "PuBu")[4:9])
+
+X5.90var = min(X.Var[which(X.Var[,5]>.90), 5])
+sp5.90var= max(sparsity_vector[which(X.Var[,5]>.90)])
+X6.90var = min(X.Var[which(X.Var[,6]>.90), 6])
+sp6.90var= max(sparsity_vector[which(X.Var[,6]>.90)])
+
+
+ggplot(pcr.VarExplained.df) +
+  geom_line(aes(1/sparsity_vector,Var.Values, color = Variables), size = 1.2) +
+  #geom_point(aes(sparsity_vector,Var.Values, col = Variables)) +
+  scale_colour_manual(values=cc, labels=c('Y', 'X (N=1)', 'X (N=2)', 'X (N=3)', 'X (N=4)', 'X (N=5)', 'X (N=6)'))+
+  geom_line(aes(1/sparsity_vector,Y, color = "red"), size = 1.4) +
+  geom_hline(linetype='dashed', size=.75,yintercept = 0.90, color='#666666') +
+  geom_point(aes(x=1/sp5.90var, y=X5.90var), size=2.2) +
+  geom_point(aes(x=1/sp6.90var, y=X6.90var), size=2.2) +
+  xlab("1 / Sparsity") +
+  ylab("Variance %") +
+  labs(title="Variance accounted for (VAF) in cost and behavior spaces") +
+ # scale_x_continuous(breaks = seq(1,pcr.cv$ncomp, 1)) +
+  scale_y_continuous(breaks = seq(0,1, .1)) +
+  theme_minimal(base_size = 16)
+
+ggsave("VAF_XY.pdf", width = 10, height = 6)
+
+
+```
+
+
+
+
+
+```{r}
+sparsity = sp6.90var
+sparsity = .001
+aa6 = robspca(X, k = num.Component, alpha = sparsity, beta = 1e-04, gamma = 100,
+                center = TRUE, scale = TRUE, max_iter = 1000, tol = 1e-05, verbose = TRUE)  
+
+aa6$loadings
+
+loadings.df = data.frame(aa6$loadings)%>%
+  pivot_longer(cols = 1:16, names_to = "Cost_Basis", values_to = "Values")
+loadings.df
+ggplot(loadings.df) +
+  geom_bar(aes(x=Values)) +
+  facet_grid(.~Cost_Basis)
+barplot(aa6$loadings)
+```
+
+
+
+
+
+### Forcing the dimensionality reduction to different numbers of principal components
+
+```{r}
+numSteps=100
+
+num.Component=16
+
+X2.Var  <- matrix(0L, nrow = numSteps, ncol = num.Component)
+Y2.Var  <- matrix(0L, nrow = numSteps, ncol = num.Component)
+
+
+for (i in seq(1, numSteps, by=1)){
+  sparsity = 2e-1*i/numSteps
+  # X.Principal = as.matrix(X.scaled)%*%as.matrix(aa6$loadings)
+  # Results.lm <- lm(y.scaled ~ X.Principal)
+  for (j in seq(1, num.Component, by=1)){
+    aa6 = robspca(X, k = j, alpha = sparsity, beta = 1e-04, gamma = 100,
+                center = TRUE, scale = TRUE, max_iter = 1000, tol = 1e-04, verbose = TRUE)  
+#    X.Var[i,j] <- sum(aa6$eigenvalues[1:j]) / sum(aa6$eigenvalues)  
+    X2.Var[i, j] <- sum(aa6$eigenvalues) / num.Component  
+  
+    X.Principal = as.matrix(X.scaled)%*%as.matrix(aa6$loadings)
+    Results.lm <- lm(y.scaled ~ X.Principal)
+    # X.Var <- cumsum(pcr.cv$Xvar) / pcr.cv$Xtotvar
+    Y2.Var[i, j] <- 1 - mean(Results.lm$residuals^2)/mean((y.scaled-mean(y.scaled))^2)
+  }
+
+}
+
+```
+
+
+```{r}
+X.scaled <- apply(X, 2, function(x) x/sd(x))
+X.standard_manual <- apply(X, 2, function(x) (x-mean(x))/sd(x))
+X.standard_Rcode  <- scale(X, center=T, scale=T)
+View(head(X.standard_manual))
+View(head(X.standard_Rcode))
+
+print(paste("Only scaled by sd:  Mean=", apply(X.scaled.centered, 2, mean), "  ||  SD=", apply(X.scaled.centered, 2, sd)))
+```
+
+
+
+
+```{r}
+
+```
+
+
+
+
+
+## Test the cross-correlation after robust sPCA
+```{r}
+aa6 = robspca(X, k = 5, alpha = .001, beta = 1e-04, gamma = 1e9,
+                center = T, scale = T, max_iter = 1000, tol = 1e-04, verbose = TRUE)  
+#    X.Var[i,j] <- sum(aa6$eigenvalues[1:j]) / sum(aa6$eigenvalues)  
+
+X.Principal = X.scaled.centered%*%aa6$loadings
+X.Principal = X%*%aa6$loadings
+X.Principal = scale(X, center=T, scale=T)%*%aa6$loadings
+
+
+
+
+ggcorr(X.Principal, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+
+
+
+
+library(sparsepca)
+aa6 = sparsepca::spca(X, k = 7, alpha = .001, beta = 1e-04,
+                center = T, scale = T, max_iter = 1000, tol = 1e-04, verbose = 0)  
+aa6$scores
+ggcorr(aa6$scores, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+
+
+
+
+
+
+
+#ggcorr(scale(X, center = TRUE, scale = TRUE)%*%aa7$rotation, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+
+
+
+
+Xs = aa6$x %*% ginv(aa6$rotation)
+Xs[1,]
+X.sc = scale(X, scale=T, center=T)
+X.sc[1,]
+X.scaled.centered[1,]
+
+ginv(aa6$x)
+
+
+ggpairs(data.frame(X.Principal))
+
+
+
+
+## regular pca
+prcomp.obj <- prcomp(X, retx=T, center=T, scale.=T, rank.=6)
+cumsum(prcomp.obj$sdev^2)/16
+
+
+ggcorr(prcomp.obj$x+10, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+ggcorr(X.scaled.centered%*%prcomp.obj$rotation, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+ggcorr(X, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+
+
+```
+
+
+
+```{r}
+sparsity_vector = seq(0, numSteps-1, by=1)*5e-2/numSteps
+# Y.Var = apply(mean.resid, 1, function(x) 1 -x^2/mean((y.scaled-mean(y.scaled))^2))
+
+pcr.VarExplained.df <- data.frame(sparsity_vector, Y = Y2.Var*100, X = X2.Var*100) %>%
+  pivot_longer(cols = c(2:7,18:23), names_to = "Variables", values_to = "Var.Values")
+
+cc <- c(brewer.pal(n = 9, name = "PuBu")[4:9],brewer.pal(n = 9, name = "Reds")[4:9])
+
+X5.90var = 100*max(X2.Var[which(X2.Var[,5]<=.90), 5])
+sp5.90var= min(sparsity_vector[which(X2.Var[,5]<=.90)])
+X6.90var = 100*max(X2.Var[which(X2.Var[,6]<=.90), 6])
+sp6.90var= min(sparsity_vector[which(X2.Var[,6]<=.90)])
+
+
+ggplot(pcr.VarExplained.df) +
+  geom_line(aes(1/sparsity_vector,Var.Values, color = Variables), size = 1.0) +
+  #geom_point(aes(sparsity_vector,Var.Values, col = Variables)) +
+  scale_colour_manual(values=cc, labels=c('X (N=1)', 'X (N=2)', 'X (N=3)', 'X (N=4)', 'X (N=5)', 'X (N=6)', 'Y (N=1)', 'Y (N=2)', 'Y (N=3)', 'Y (N=4)', 'Y (N=5)', 'Y (N=6)')) +
+  #geom_line(aes(1/sparsity_vector,Y, color = "red"), size = 1.4) +
+  geom_hline(linetype='dashed', size=.75,yintercept = 90, color='#666666') +
+  geom_point(aes(x=1/sp5.90var, y=X5.90var), size=2.2) +
+  geom_point(aes(x=1/sp6.90var, y=X6.90var), size=2.2) +
+  xlab("1 / Sparsity") +
+  ylab("VAF (%)") +
+  labs(title="Variance accounted for (VAF) in cost and behavior spaces") +
+ # scale_x_continuous(breaks = seq(1,pcr.cv$ncomp, 1)) +
+  scale_y_continuous(breaks = seq(0,100, 10)) +
+  theme_minimal(base_size = 16)
+
+ggsave("VAF_XY_All.pdf", width = 10, height = 6)
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
+num.comp = 5
+sparsity.val = sp5.90var
+sparsity.val = .001
+
+# sparsity = 5e-2*i/numSteps
+aa6 = robspca(X, k = 5, alpha = sparsity.val, beta = 1e-04, gamma = 100,
+                center = TRUE, scale = TRUE, max_iter = 1000, tol = 1e-05, verbose = TRUE)
+sPCR_Object = aa6
+cumsum(aa6$eigenvalues) / num.Component
+```
+
+```{r}
+Criteria.Names = c("Angular acceleration", "Angular jerk", "Cartesian acceleration", "Cartesian jerk", "Torques sqrd", "Torques abs", "Torque rate sqrd", "Torque rate abs", "Torque 2nd rate sqrd", "Torque 2nd rate abs", "yGRF rate sqr", "xGRF rate sqr", "Positive work", "Absolute work", "Peak kinetic energy", "Pk-to-Pk ang momentum")
+
+loadings.df <- data.frame(aa6$loadings)
+#rownames(loadings.df) <- paste("X", 1:16, sep="")
+rownames(loadings.df) <- Criteria.Names
+colnames(loadings.df) <- paste("Basis", 1:5)
+
+
+View(loadings.df)
+View(loadings.df.gg)
+
+loadings.df.gg <- loadings.df %>% 
+  rownames_to_column(., "Cost_Component") %>%
+  pivot_longer(cols = c(2:6), names_to = "Cost_Basis", values_to = "Loading") %>%  
+  mutate(Cost_Component = factor (loadings.df.gg$Cost_Component, levels = rev(Criteria.Names)))
+
+loadings.df.gg$Loading[abs(loadings.df.gg$Loading) < .3] = 0
+
+```
+
+
+```{r}
+ggplot(loadings.df.gg) +
+  geom_vline(linetype='dashed', size=.4,xintercept = 0, color='#666666')+ 
+  geom_bar(stat = "identity", aes(x=Loading, y=Cost_Component, fill = Loading), width=.7) +
+  scale_fill_gradient2(limits = c(-1,1), breaks = c(-1, -.5, 0, .5, 1),
+    guide = guide_colourbar(nbin = 100, draw.ulim = FALSE, draw.llim = FALSE)) +
+#  scale_fill_viridis_c(option = 'Blue-Red') 
+  facet_grid(.~Cost_Basis) +
+  xlab("Loading") +
+  ylab("Cost Component") +
+  labs(title="Cost Components Loadings across Cost Bases (Cut-off=0.3 for interpretation)") +
+#  labs(title="Cost Components Loadings across Cost Bases (No cut-off)") +
+ # scale_x_continuous(breaks = seq(1,pcr.cv$ncomp, 1)) +
+  scale_x_continuous(breaks = c(-1, -.5,0,.5, 1), ) +
+  theme_minimal(base_size = 15) +
+  theme(panel.spacing = unit(1.5, "lines"))
+
+#ggsave("sPCR_Loadings.pdf", width = 12.5, height = 6)
+ggsave("sPCR_Loadings_CutOff.pdf", width = 12.5, height = 6)
+
+```
+
+
+## Radial Plot
+
+```{r}
+Criteria.Names = c("Angular acceleration", "Angular jerk", "Cartesian acceleration", "Cartesian jerk", "Torques sqrd", "Torques abs", "Torque rate sqrd", "Torque rate abs", "Torque 2nd rate sqrd", "Torque 2nd rate abs", "yGRF rate sqr", "xGRF rate sqr", "Positive work", "Absolute work", "Peak kinetic energy", "Pk-to-Pk ang momentum")
+
+loadings.df <- data.frame(t(abs(aa6$loadings)))
+#rownames(loadings.df) <- paste("X", 1:16, sep="")
+colnames(loadings.df) <- Criteria.Names
+rownames(loadings.df) <- paste("Basis", 1:5)
+
+
+View(loadings.df)
+
+#loadings.df.gg <- loadings.df %>% 
+#  rownames_to_column(., "Cost_Component") %>%
+#  pivot_longer(cols = c(2:6), names_to = "Cost_Basis", values_to = "Loading") %>%  
+#  mutate(Cost_Component = factor (loadings.df.gg$Cost_Component, levels = rev(Criteria.Names)))
+
+#View(loadings.df.gg)
+
+#loadings.df.gg$Loading[abs(loadings.df.gg$Loading) < .3] = 0
+```
+
+
+```{r}
+install.packages("fmsb")
+library(fmsb)
+create_beautiful_radarchart <- function(data, color = "#00AFBB", 
+                                        vlabels = colnames(data), vlcex = 0.7,
+                                        caxislabels = NULL, title = NULL, ...){
+  radarchart(
+    data, axistype = 1,
+    # Customize the polygon
+    pcol = color, pfcol = scales::alpha(color, 0.5), plwd = 2, plty = 1,
+    # Customize the grid
+    cglcol = "grey", cglty = 1, cglwd = 0.8,
+    # Customize the axis
+    axislabcol = "grey", 
+    # Variable labels
+    vlcex = vlcex, vlabels = vlabels,
+    caxislabels = caxislabels, title = title, ...
+  )
+}
+```
+
+
+```{r}
+# Reduce plot margin using par()
+op <- par(mar = c(1, 1, 1, 1))
+# Create the radar charts
+create_beautiful_radarchart(
+  data = loadings.df, caxislabels = c(0, .25, .5, .75, 1),
+  color = c("#00AFBB", "#E7B800", "#FC4E07", "#A7B800", "#BA1E07")
+)
+# Add an horizontal legend
+legend(
+  x = "bottom", legend = rownames(df[-c(1,2),]), horiz = TRUE,
+  bty = "n", pch = 20 , col = c("#00AFBB", "#E7B800", "#AA4E07", "#A7B800", "#AA0A00"),
+  text.col = "black", cex = 1, pt.cex = 1.5
+  )
+par(op)
+```
+
+```{r}
+# write.csv(loadings.df, "Loadings_Radar.csv")
+
+#pdf("sPCR_Loadings_Radar.pdf",         # File name
+#    width = 17, height = 11, # Width and height in inches
+#    bg = "white",          # Background color
+#    colormodel = "cmyk"    # Color model (cmyk is required for most publications)
+#    )          # Paper size
+
+
+colors_border=c( rgb(0.8,0.2,0.5,0.9),  rgb(0.1,0.1,0.8,0.9), rgb(0.7,0.5,0.1,0.9), rgb(0.2,0.5,0.5,0.9), rgb(0.8,0.8,0.1,0.9) )
+colors_in=c( rgb(0.8,0.2,0.5,0.5) ,   rgb(0.1,0.1,0.8,0.3), rgb(0.7,0.5,0.1,0.5), rgb(0.2,0.5,0.5,0.7), rgb(0.8,0.8,0.1,0.2) )
+radarchart( loadings.df  , axistype=1 ,  maxmin=F, 
+    #custom polygon
+    pcol=colors_border , pfcol=colors_in , plwd=3 , plty=1,
+    #custom the grid
+    cglcol="grey", cglty=1, axislabcol="grey", caxislabels=seq(0,1,4), cglwd=0.8,
+    #custom labels
+    vlcex=1.2
+    )
+
+# Add a legend
+legend(x=1.5, y=1, legend = rownames(loadings.df), bty = "n", pch=20 , col=colors_in , text.col = "black", cex=1.5, pt.cex=3)
+ggplotly(p)
+
+#dev.off()
+
+ggplotly(p)
+#ggsave("sPCR_Loadings_Radar.pdf", width = 12.5, height = 6)
+
+```
+
+
+```{r}
+library(plotly)
+loadings.matrix = aa6$loadings
+loadings.matrix[loadings.matrix<.05] = .05
+View(loadings.matrix)
+
+fig <- plot_ly(
+    type = 'scatterpolar',
+    fill = 'toself'
+  ) 
+fig <- fig %>%
+  add_trace(
+    r = loadings.matrix[,1] / max(loadings.matrix[,1]),
+    theta = Criteria.Names,
+    name = 'Basis 1'
+  ) 
+fig <- fig %>%
+  add_trace(
+    r = loadings.matrix[,2] / max(loadings.matrix[,2]),
+    theta = Criteria.Names,
+    name = 'Basis 2'
+  )
+fig <- fig %>%
+  add_trace(
+    r = loadings.matrix[,3] / max(loadings.matrix[,3]),
+    theta = Criteria.Names,
+    name = 'Basis 3'
+  ) 
+fig <- fig %>%
+  add_trace(
+    r = loadings.matrix[,4] / max(loadings.matrix[,4]),
+    theta = Criteria.Names,
+    name = 'Basis 4'
+  )
+fig <- fig %>%
+  add_trace(
+    r = loadings.matrix[,5] / max(loadings.matrix[,5]),
+    theta = Criteria.Names,
+    name = 'Basis 5'
+  ) 
+fig <- fig %>%
+  layout(
+    polar = list(
+      radialaxis = list(
+        visible = T,
+        range = c(0,1.1)
+      )
+    )
+  )
+
+fig
+```
+
+
+
+```{r}
+loadings.matrix = aa6$loadings
+loadings.matrix[loadings.matrix<.01] = .01
+
+fig <- plot_ly(
+    type = 'scatterpolar',
+    fill = 'toself'
+  ) 
+fig <- fig %>%
+  add_trace(
+    r = loadings.matrix[,1] ,
+    theta = Criteria.Names,
+    name = 'Basis 1'
+  ) 
+fig <- fig %>%
+  add_trace(
+    r = loadings.matrix[,2] ,
+    theta = Criteria.Names,
+    name = 'Basis 2'
+  )
+fig <- fig %>%
+  add_trace(
+    r = loadings.matrix[,3] ,
+    theta = Criteria.Names,
+    name = 'Basis 3'
+  ) 
+fig <- fig %>%
+  add_trace(
+    r = loadings.matrix[,4] ,
+    theta = Criteria.Names,
+    name = 'Basis 4'
+  )
+fig <- fig %>%
+  add_trace(
+    r = loadings.matrix[,5] ,
+    theta = Criteria.Names,
+    name = 'Basis 5'
+  ) 
+fig <- fig %>%
+  layout(
+    polar = list(
+      radialaxis = list(
+        visible = T,
+        range = c(0,.8)
+      )
+    )
+  )
+
+fig
+```
+
+
+
+
+
+```{r}
+library(plotly)
+
+fig <- plot_ly(
+    type = 'scatterpolar',
+    fill = 'toself'
+  ) 
+fig <- fig %>%
+  add_trace(
+    r = c(39, 28, 8, 7, 28, 1.5, 10, 39, 31, 15),
+    theta = c('A','B','C', 'D', 'E', 'F','G','H', 'I', 'J'),
+    name = 'Group A'
+  ) 
+fig <- fig %>%
+  add_trace(
+    r = c(1.5, 10, 39, 31, 15, 1.5, 10, 39, 31, 15),
+    theta = c('A','B','C', 'D', 'E', 'F','G','H', 'I', 'J'),
+    name = 'Group B'
+  ) 
+fig <- fig %>%
+  layout(
+    polar = list(
+      radialaxis = list(
+        visible = T,
+        range = c(0,50)
+      )
+    )
+  )
+
+fig
+```
+
+
+## ggradar
+
+```{r}
+devtools::install_github("ricardo-bion/ggradar")
+library("ggradar")
+```
+
+```{r}
+loadings.df.gg <- data.frame(abs(aa6$loadings))
+rownames(loadings.df.gg) <- paste("Basis", 1:16, sep=" ")
+loadings.df.gg <- loadings.df.gg %>% rownames_to_column(., "Cost_Component") %>%
+  mutate(Cost_Component = factor (Criteria.Names, levels = rev(Criteria.Names))) %>%
+  pivot_longer(cols = c(2:6), names_to = "Cost_Basis", values_to = "Loading")
+  
+
+loadings.df.gg
+```
+
+```{r}
+df.radar <- loadings.df %>% 
+  rownames_to_column("group")
+```
+
+
+```{r}
+ggradar(
+  df.radar, 
+  values.radar = c("0", "0.5", " "),
+  grid.min = 0, grid.mid = 0.5, grid.max = .75,
+  # Polygons
+  group.line.width = 1, 
+  group.point.size = .6,
+  group.colours = c("#00AFBB", "#E7B800", "#FC4E07"),
+  # Background and grid lines
+  background.circle.colour = "grey",
+  gridline.mid.colour = "grey",
+  legend.position = "bottom"
+  )
+```
+
+
+
+
+```{r}
+library(corrplot)
+X.df <- data.frame(X)
+colnames(X.df) <- Criteria.Names
+
+pl1<- { # Prepare the Corrplot 
+       corrplot(cor(X.df), tl.col='black',
+                title = "Correlation Matrix for Cost Components")
+        recordPlot()
+       }
+  
+pdf("Corrpl.pdf")
+corrplot(cor(X.df), tl.col='black', order='hclust', addrect = 5,
+                title = "Correlation Matrix for Cost Components")
+dev.off
+
+testRes = cor.mtest(X, conf.level = 0.95)
+corrplot(cor(X.df), p.mat = testRes$p, insig = 'p-value')
+
+  
+ggsave(filename = "Corrplot1.pdf", plot = replayPlot(pl1))
+pdf("Corrplot.pdf")
+dev.copy(pdf,'Corrplot.png')
+dev.off()
+ggsave("CorrPlot.pdf")
+
+
+png(height=1800, width=1800, file="CorrPlot.png", type = "cairo")
+corrplot(cor(X.df), 
+         method = "circle",
+         is.corr = F,
+         order = "FPC",
+         tl.col="black")
+dev.off()
+
+
+```
+
+```{r}
+pdf(height=11, width=11, file="CorrPlot.pdf")
+corrplot(cor(X.df), tl.col='black', order='hclust', addrect = 5,
+                title = "Correlation Matrix for Cost Components")
+#corrplot(cor(X.df), 
+#         method = "circle",
+#         is.corr = F,
+#         order = "FPC",
+#         tl.col="black")
+dev.off()
+```
+
+
+```{r}
+install.packages("GGally")
+library(GGally)
+ggcorr(X.df, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+```
+
+
+```{r}
+save(loadings.df , loadings.df.gg, X , y , sPCR_Object, sp5.90var , X2.Var, Y2.Var, "Cost_Bases_Structure_Results.RData")
+writeMat("Cost_Bases_Structure_Results.mat", loadings.df = loadings.df, loadings.df.gg = loadings.df.gg, X = X, y = y, sPCR_Object = sPCR_Object, sp5.90var = sp5.90var, X2.Var = X2.Var, Y2.Var = Y2.Var, fixNames=TRUE, matVersion="5", onWrite=NULL, verbose=FALSE)
+```
+
+
+
+
+mixOmics::spca
+```{r}
+## Trying mixOmics spca
+aa7 = mixOmics::spca(
+  X.standard_manual,
+  ncomp = 16,
+  center = F,
+  scale = F,
+  keepX = rep(8, 16),
+  max.iter = 5000,
+  tol = 1e-06,
+  multilevel = NULL
+)
+
+aa7$cum.var
+
+
+aa7$rotation
+aa7$x
+head(aa7$x)
+head(X.standard_manual%*%aa7$rotation - aa7$x)
+
+aa7$prop_expl_var
+
+ggcorr(aa7$x, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+ggcorr(X.standard_manual%*%aa7$rotation, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+```
+
+
+
+spcr::spcr
+```{r}
+library(spcr)
+
+
+spcr_cv <- cv.spcr(X, as.vector(y), 10, w=0.1, xi=0.01, nfolds=5, adaptive=FALSE,
+                   center=TRUE, scale=FALSE, lambda.B.length=1, lambda.gamma.length=1,
+                   lambda.B=NULL, lambda.gamma=NULL)
+
+```
+
+
+
+
+rospca::rospca
+
+```{r}
+rospca.Object <- rospca(X.standard_Rcode, 10, kmax = 16, alpha = 0.75, h = NULL, ndir = 10, grid = TRUE,
+       lambda = 1e-1, stand = F, skew = FALSE)
+cumsum(rospca.Object$eigenvalues)/16
+rospca.Object$loadings
+```
+
+
+
+
+
+
+## Non-negative and sparse PCR 
+```{r echo=F, results='hide'}
+X = read.csv('Cost_Components_Eval_Fakuchi_AllData.txt',header=F)
+y = read.csv('Cost_Deviation_Eval_y_forPLSR.txt',header=F)
+
+X = read.csv('Cost_Components_Eval_Fakuchi_AllData_2023-01-19.txt',header=F)
+y = read.csv('Cost_Deviation_Eval_y_forPLSR_2023-01-19.txt',header=F)
+
+Data = readMat('Fukuchi_Features_DTW_RMS.mat', fixNames=TRUE, drop=c("singletonLists"),
+               sparseMatrixClass=c("Matrix"), verbose=FALSE)
+
+
+setwd('C:/Users/nozaripo/Desktop/5LinkBiped_BayesianIOC_MCMC/fiveLinkBiped_Model_Cost_Constraint')
+Data = readMat('Fukuchi_Features_DTW_RMS_2023-01-19.mat', fixNames=TRUE, drop=c("singletonLists"),
+               sparseMatrixClass=c("Matrix"), verbose=FALSE)
+
+
+Features.Matrix = Data$Cost.Components.Subjects
+DTW.Vector      = Data$DTW.Sum.Subjects
+RMSE.Vector     = Data$RMSE.Sum.Subjects
+
+
+
+
+
+X = Data$Cost.Components
+y = Data$DTW.Sum
+
+X.scaled = scale(X, center = TRUE, scale = TRUE)
+y.scaled = scale(y, center = TRUE, scale = TRUE)
+X
+
+```
+
+```{r}
+install.packages("nsprcomp")
+library(nsprcomp)
+#nscumcomp(X, ncomp = min(dim(x)), omega = rep(1, nrow(x)),
+#k = d * ncomp, nneg = T, gamma = 0, center = TRUE,
+#scale. = T, nrestart = 5, em_tol = 0.001, em_maxiter = 20,
+#verbosity = 0, ...)
+
+nscumcomp(X, ncomp = 8,
+k = 8, nneg = T, gamma = 100000, center = TRUE,
+scale. = T, nrestart = 1, em_tol = 0.0001, em_maxiter = 50,
+verbosity = 0)
+
+
+
+PCA.obj <- nsprcomp(X, retx = TRUE, ncomp = 10, k = 4, nneg = T, center = T, scale. = T, tol = NULL, nrestart = 5, em_tol = 0.0001, em_maxiter = 1000, partial_model = NULL, verbosity = 0)
+PCA.obj
+cumsum(PCA.obj$sdev^2)/16
+
+```
+
+
+```{r}
+library(MASS)
+#install.packages("DAAG")
+#library(DAAG)
+library(boot)
+numSteps=100
+
+num.Component=16
+
+X2.Var  <- matrix(0L, nrow = num.Component, ncol = num.Component)
+Y2.Var  <- matrix(0L, nrow = num.Component, ncol = num.Component)
+
+
+X.scaled <- apply(X, 2, function(x) x/sd(x))
+X.scaled.centered <- apply(X, 2, function(x) (x-mean(x))/sd(x))
+
+
+center.flag = F
+scale.flag  = T
+
+
+for (i in seq(1, num.Component, by=1)){
+  for (j in seq(1, i, by=1)){
+    print(paste("i (No. Comp) = ", i, "   |   j (No. Nonzero) = ", j))
+    PCA.obj <- nsprcomp(X, retx = TRUE, ncomp = i, k = j, nneg = T, center = T, scale. = T, tol = NULL,
+                        nrestart = 5, em_tol = 0.001, em_maxiter = 1000, partial_model = NULL, verbosity = 0)
+    X2.Var [j, i] <- sum(PCA.obj$sdev^2) /  num.Component
+    # X.Principal = as.matrix(X)%*%as.matrix(PCA.obj$rotation)
+    X.Principal = as.matrix(X.scaled)%*%as.matrix(PCA.obj$rotation)
+    
+    # apply(X.Principal, 2, sd)
+    ggcorr((X.Principal), label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+    data.cv <- data.frame(y, X.Principal)
+    Results.lm <- glm(y ~ ., data=data.cv)
+    cv.lm <- cv.glm(data.cv, Results.lm, K=10)
+    # X.Var <- cumsum(pcr.cv$Xvar) / pcr.cv$Xtotvar
+    # Y2.Var[i, j] <- 1 - mean(Results.lm$residuals^2)/mean((y.scaled-mean(y.scaled))^2)
+    Y2.Var[j, i] <- 1 - mean(cv.lm$delta[2]) / var(y)
+  }
+}
+```
+
+
+## Test the validity of the NN-robsPCA
+```{r}
+X.scaled <- apply(X, 2, function(x) x/sd(x))
+X.scaled.centered <- apply(X, 2, function(x) (x-mean(x))/sd(x))
+
+X.scaled1 = scale(X, center = T, scale = T)
+
+print(paste("Only scaled by sd:  Mean=", apply(X.scaled, 2, mean), "  ||  SD=", apply(X.scaled, 2, sd)))
+print(paste("Only scaled by sd:  Mean=", apply(X.scaled1, 2, mean), "  ||  SD=", apply(X.scaled1, 2, sd)))
+print(paste("Only scaled by sd:  Mean=", apply(X.scaled.centered, 2, mean), "  ||  SD=", apply(X.scaled.centered, 2, sd)))
+
+PCA.obj <- nsprcomp(X, retx = T, ncomp = 10, k = 4, nneg = T, gamma=1e9, center = T, scale. = T, tol = NULL,
+                        nrestart = 5, em_tol = 0.001, em_maxiter = 1000, partial_model = NULL, verbosity = 0)
+PCA.obj <- nscumcomp(X, retx = T, ncomp = 10, k = 4, nneg = T, gamma=1e50, center = T, scale. = T, tol = NULL,
+                        nrestart = 5, em_tol = 0.001, em_maxiter = 1000, partial_model = NULL, verbosity = 0)
+ggcorr(PCA.obj$x, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+
+PCA.obj$scale
+apply(X.scaled, 2, sd)
+X.Principal = as.matrix(X.scaled)%*%as.matrix(PCA.obj$rotation)
+
+X.Principal = as.matrix(X.scaled.centered)%*%as.matrix(PCA.obj$rotation)
+ggcorr(X.Principal, label = TRUE, label_size = 3, label_round = 2, label_alpha = TRUE)
+
+```
+
+
+
+
+## Visualization of all possible combinations
+Now we plot the VAF in both `X` and `Y` spaces for different number of components (represented as different traces) and different number of nonzero features in each component represented as `1/sparcity`
+```{r}
+sparsity_vector = seq(0, numSteps-1, by=1)*5e-2/numSteps
+# Y.Var = apply(mean.resid, 1, function(x) 1 -x^2/mean((y.scaled-mean(y.scaled))^2))
+
+
+for (i in seq(1, num.Component-1, by=1)){
+  for (j in seq(i+1, 16, by=1)){
+    X2.Var[j, i] <- 0
+    Y2.Var[j, i] <- 0
+  }
+}
+
+sparsity_vector = 1:16 
+
+pcr.VarExplained.df <- data.frame(sparsity_vector, Y = Y2.Var*100, X = X2.Var*100) %>%
+  pivot_longer(cols = c(4:10, 20:26), names_to = "PC_No", values_to = "Var.Values") %>%
+  filter(Var.Values!=0)
+
+cc <- c(brewer.pal(n = 9, name = "PuBu")[3:9],brewer.pal(n = 9, name = "Reds")[3:9])
+
+
+pcr.VarExplained.df <- data.frame(sparsity_vector, Y = Y2.Var*100, X = X2.Var*100) %>%
+  pivot_longer(cols = c(6:12, 22:28), names_to = "PC_No", values_to = "Var.Values") %>%
+  filter(Var.Values!=0)
+#cc <- c(brewer.pal(n = 9, name = "PuBu"),brewer.pal(n = 9, name = "Reds"))
+
+
+X5.90var = 100*max(X2.Var[which(X2.Var[,5]<=.90), 5])
+sp5.90var= min(sparsity_vector[which(X2.Var[,5]<=.90)])
+X6.90var = 100*max(X2.Var[which(X2.Var[,6]<=.90), 6])
+sp6.90var= min(sparsity_vector[which(X2.Var[,6]<=.90)])
+```
+
+
+
+```{r}
+
+ggplot(pcr.VarExplained.df) +
+  geom_line(aes(sparsity_vector,Var.Values, color = PC_No), size = 1.0) +
+  #geom_point(aes(sparsity_vector,Var.Values, col = Variables)) +
+  scale_colour_manual(values=cc, labels=c('X (N=3)', 'X (N=4)', 'X (N=5)', 'X (N=6)', 'X (N=7)', 'X (N=8)', 'X (N=9)', 'Y (N=3)', 'Y (N=4)', 'Y (N=5)', 'Y (N=6)', 'Y (N=7)', 'Y (N=8)', 'Y (N=9)')) +
+  #geom_line(aes(1/sparsity_vector,Y, color = "red"), size = 1.4) +
+  geom_hline(linetype='dashed', size=.75,yintercept = 90, color='#666666') +
+ # geom_point(aes(x=1/sp5.90var, y=X5.90var), size=2.2) +
+  #geom_point(aes(x=1/sp6.90var, y=X6.90var), size=2.2) +
+  xlab("1 / Sparsity") +
+  ylab("VAF (%)") +
+  labs(title="Variance accounted for (VAF) in cost and behavior spaces") +
+ # scale_x_continuous(breaks = seq(1,pcr.cv$ncomp, 1)) +
+  scale_y_continuous(breaks = seq(0,100, 10)) +
+  theme_minimal(base_size = 16)
+
+ggsave("VAF_XY_All.pdf", width = 10, height = 6)
+```
+
+
+```{r}
+gg
+```
+
+
+
+```{r}
+
+PCA.obj <- nsprcomp(X.scaled+10, retx = TRUE, ncomp = 10, k = 3, nneg = T, center = F, scale. = F, tol = NULL, 
+                        nrestart = 5, em_tol = 0.001, em_maxiter = 1000, partial_model = NULL, verbosity = 0)
+PCA.obj <- nsprcomp(X, retx = T, ncomp = 10, k = 4, nneg = T, center = T, scale. = T, tol = NULL, 
+                        nrestart = 5, em_tol = 0.001, em_maxiter = 2000, partial_model = NULL, verbosity = 0)
+cumsum(PCA.obj$sdev^2) / num.Component
+cumsum(PCA.obj$sdev^2) / sum(apply(X,2,var))
+PCA.obj
+sum(apply(X,2,var))
+
+```
+
+```{r}
+Criteria.Names = c("Angular acceleration", "Angular jerk", "Cartesian acceleration", "Cartesian jerk", "Torques sqrd", "Torques abs", "Torque rate sqrd", "Torque rate abs", "Torque 2nd rate sqrd", "Torque 2nd rate abs", "yGRF rate sqr", "xGRF rate sqr", "Positive work", "Absolute work", "Peak kinetic energy", "Pk-to-Pk ang momentum")
+
+loadings.df <- data.frame(PCA.obj$rotation)
+#rownames(loadings.df) <- paste("X", 1:16, sep="")
+rownames(loadings.df) <- Criteria.Names
+colnames(loadings.df) <- paste("Basis", 1:10)
+
+
+View(loadings.df)
+View(loadings.df.gg)
+
+loadings.df.gg <- loadings.df %>% 
+  rownames_to_column(., "Cost_Component") %>%
+  pivot_longer(cols = c(2:11), names_to = "Cost_Basis", values_to = "Loading")
+loadings.df.gg$Cost_Component = factor (loadings.df.gg$Cost_Component, levels = rev(Criteria.Names))
+
+#loadings.df.gg$Loading[abs(loadings.df.gg$Loading) < .3] = 0
+
+```
+
+
+```{r}
+ggplot(loadings.df.gg) +
+  geom_vline(linetype='dashed', size=.4,xintercept = 0, color='#666666')+ 
+  geom_bar(stat = "identity", aes(x=Loading, y=Cost_Component, fill = Loading), width=.7) +
+  scale_fill_gradient2(limits = c(-1,1), breaks = c(-1, -.5, 0, .5, 1),
+    guide = guide_colourbar(nbin = 100, draw.ulim = FALSE, draw.llim = FALSE)) +
+#  scale_fill_viridis_c(option = 'Blue-Red') 
+  facet_grid(.~Cost_Basis) +
+  xlab("Loading") +
+  ylab("Cost Component") +
+  labs(title="Cost Components Loadings across Cost Bases (Cut-off=0.3 for interpretation)") +
+#  labs(title="Cost Components Loadings across Cost Bases (No cut-off)") +
+ # scale_x_continuous(breaks = seq(1,pcr.cv$ncomp, 1)) +
+  scale_x_continuous(breaks = c(-1, -.5,0,.5, 1), ) +
+  theme_minimal(base_size = 15) +
+  theme(panel.spacing = unit(1.5, "lines"))
+
+#ggsave("sPCR_Loadings.pdf", width = 12.5, height = 6)
+ggsave("sPCR_Loadings_CutOff.pdf", width = 12.5, height = 6)
+
+```
+
+
+
+```{r}
+writeMat("Cost_Bases_Structure_Results_Nonnegative_10PC_4sp.mat", sPCR_Object = PCA.obj, fixNames=TRUE, matVersion="5", onWrite=NULL, verbose=FALSE)
+```
+
+
+
+############################
+
+## Regular PCR
+
+## (b) Principal Component Regression (PCR)
+
+- Fit a PCR model on the training set, with number of PCs chosen by cross-validation. Visualize the results.
+
+- Report the test error corresponding with the number of PCs selected from above.
+
+- Report the variance explained in both predictors and response spaces across different number of PCs.
+
+
+## (b) PCR
+
+
+```{r}
+library(pls)
+Demo = data.frame(X, y)
+X.scaled = scale(X, center=F, scale=T)
+Demo = data.frame(X.scaled, y)
+train.size = round(dim(Demo)[1] *.8)
+train = sample(dim(Demo)[1], train.size)
+test = -train
+
+Demo.train <- Demo[train, ]
+Demo.test  <- Demo[test, ]
+```
+
+
+
+1. Perform PCR on the training set and visualize MSE across number of PCs using cross-validation.
+
+
+```{r}
+# pcr.cv = pcr(y~., data=Demo.train, scale=T, center=F, validation="CV")
+pcr.cv = pcr(y~., data=Demo, scale=F, center=T, validation="CV")
+
+validationplot(pcr.cv, val.type="MSEP")
+
+```
+
+## (b) PCR
+
+- Can you manually plot what `validationplot()` gave you above?
+  
+  
+```{r}
+library(ggplot2)
+library(magrittr)
+library(tidyr)
+res.pcr <- apply(pcr.cv$residuals[,1,], 2, function(x) mean(x^2))
+
+ggplot() +
+  geom_line(aes(1:pcr.cv$ncomp, res.pcr)) +
+  geom_point(aes(1:pcr.cv$ncomp, res.pcr)) +
+  xlab("Number of PCs") +
+  ylab("MSEP") +
+  scale_x_continuous(breaks = seq(1,pcr.cv$ncomp, 1))
+```
+
+## (b) PCR
+
+Use `selectNcomp()` to select the number of PCs that correspond to 1 SE.
+
+```{r}
+N.PC <- selectNcomp(pcr.cv, method = "onesigma", plot = TRUE)
+
+```
+
+
+
+## (b) PCR
+
+2. Report the test MSE for PCR with the number of PCs selected above. 
+
+```{r}
+pcr.pred = predict(pcr.cv, Demo, ncomp=N.PC)
+
+pcr.mse <- mean((Demo[, "y"] - pcr.pred)^2)
+
+pcr.mse
+```
+
+
+## (b) PCR
+
+3. Report a summary of the PCR model and visualize the variance explained in predictors space for different number of PCs.
+
+- Summary
+
+```{r}
+summary(pcr.cv)
+```
+
+## (b) PCR
+
+3. Report a summary of the PCR model and visualize the variance explained in both predictors and response variable spaces for different number of PCs.
+
+- Visualize the variance explained
+
+*Hint 1*: You may access the variance in predictors through `$Xvar`. Remember to use cumulative sum.
+
+*Hint 2*: Also, `$residuals[,1,]` will give you the residuals for each number of PCs. Note that residuals and variance in response variable `Apps` are related. Variance explained in response variable space is the same as $R^2$.
+
+
+```{r}
+XVar <- cumsum(pcr.cv$Xvar) / pcr.cv$Xtotvar
+
+Yres <- apply(pcr.cv$residuals[,1,], 2, function(x) 1 - mean(x^2)/mean((Demo[,"y"]-mean(Demo.train[,"y"]))^2))
+
+pcr.explained.df <- data.frame(N.Comp = 1:pcr.cv$ncomp, X = XVar, Y = Yres) %>%
+  pivot_longer(cols = 2:3, names_to = "Variables", values_to = "Var.Values")
+
+
+ggplot(pcr.explained.df) +
+  geom_line(aes(N.Comp,Var.Values, col = Variables), size = 1.1) +
+  geom_point(aes(N.Comp,Var.Values, col = Variables)) +
+  scale_color_manual(values = c("red", "black")) +
+  xlab("Number of Principal Components") +
+  ylab("Variance Explained") +
+  scale_x_continuous(breaks = seq(1,pcr.cv$ncomp, 1)) +
+  scale_y_continuous(breaks = seq(0,1, .1)) +
+  theme_bw()
+```
+
+
+```{r}
+
+#pcr.pred = predict(pcr.cv, Demo, ncomp=N.PC)
+
+pcr.pred = predict(pcr.cv, Demo, ncomp=4)
+pcr_fit1 = pcr(y~., data=Demo, scale = TRUE, ncomp = 9)
+pcr_fit1$loadings
+```
+
+
+
+
+
+#####################################
+
+
+
+N.Comp = 16
+
+library(spcr)
+
+lambda.B = 1
+lambda.gamma = 1
+k = N.Comp
+
+#Results.SPCR = spcr(as.matrix(X), as.vector(y), k, lambda.B, lambda.gamma, w=0.1, xi=0.01, 
+#     adaptive=FALSE, center=TRUE, scale=FALSE)
+
+
+
+# setwd('C:/Users/nozaripo/OneDrive - University of Southern California/OptimTraj-master/demo/fiveLinkBiped - IOC')
+
+
+
+library("R.matlab")
+
+Data = readMat('Fukuchi_Features_DTW_RMS.mat', fixNames=TRUE, drop=c("singletonLists"),
+               sparseMatrixClass=c("Matrix"), verbose=FALSE)
+
+setwd('C:/Users/nozaripo/Desktop/5LinkBiped_BayesianIOC_MCMC/fiveLinkBiped_Model_Cost_Constraint')
+Data = readMat('Fukuchi_Features_DTW_RMS_2023-01-19.mat', fixNames=TRUE, drop=c("singletonLists"),
+               sparseMatrixClass=c("Matrix"), verbose=FALSE)
+Features.Matrix = Data$Cost.Components.Subjects
+DTW.Vector      = Data$DTW.Sum.Subjects
+RMSE.Vector     = Data$RMSE.Sum.Subjects
+
+
+
+
+
+X = Data$Cost.Components
+y = Data$RMSE.Sum
+
+X.scaled = scale(X, center = TRUE, scale = TRUE)
+y.scaled = scale(y, center = TRUE, scale = TRUE)
+
+
+X_scaled = Data$X.scaled
+X_scaled = X.scaled
+
+
+#lambda_values = cv.spcr(as.matrix(X), as.vector(y), k, w=0.1, xi=0.01, nfolds=10, adaptive=FALSE,
+#                       center=FALSE, scale=FALSE, lambda.B.length=100, lambda.gamma.length=100,
+#                        lambda.B=NULL, lambda.gamma=NULL)
+
+lambda_values = cv.spcr(as.matrix(X_scaled), as.vector(y), k, w=0.1, xi=0.01, nfolds=10, adaptive=FALSE,
+                        center=FALSE, scale=FALSE, lambda.B.length=100, lambda.gamma.length=100,
+                        lambda.B=NULL, lambda.gamma=NULL)
+lambda_values$
+lambda.B = 700
+lambda.gamma = 1000
+#lambda.B = 33.6
+#lambda.gamma = 33.6
+#Results.SPCR = spcr(as.matrix(X), as.vector(y), k, lambda.B, lambda.gamma, w=0.1, xi=0.01, 
+#                    adaptive=FALSE, center=TRUE, scale=TRUE)
+Results.SPCR = spcr(as.matrix(X), as.vector(y), k, lambda.B, lambda.gamma, w=0.1, xi=0.01, 
+                    adaptive=FALSE, center=TRUE, scale=T)
+
+View(Results.SPCR$loadings.A)
+
+
+
+
+Variance_Data = matrix(0L, nrow = 1, ncol = N.Comp)
+Variance_spcr = matrix(0L, nrow = 1, ncol = N.Comp)
+for(i in 1:N.Comp){
+  Variance_Data[i] = var(X_scaled[,i])
+  Variance_spcr[i] = var(X_scaled%*%Results.SPCR$loadings.A[,i])
+  
+}
+
+Variance_Data_total = sum(Variance_Data)
+
+VAF_spcr = Variance_spcr/Variance_Data_total
+
+
+VAF_spcr_sorted = cumsum(sort(VAF_spcr,decreasing=TRUE))
+
+pcr_components = sum(VAF_spcr_sorted<.90)
+pcr_components = 8
+
+idx = order(VAF_spcr,decreasing=TRUE)
+
+Loadings_spcr = Results.SPCR$loadings.A[,idx[1:pcr_components]]
+
+as.matrix(VAF_spcr_sorted)
+
+#####
+View(Loadings_spcr)
+View(as.array(VAF_spcr_sorted))
+View(VAF_spcr_sorted)
+View(t(as.matrix(VAF_spcr_sorted))[,1:7])
+
+
+Loadings_spcr.cut = Loadings_spcr
+Loadings_spcr.cut[abs(Loadings_spcr.cut)<.3]=0
+
+
+## Plot the loadings
+
+Criteria.Names = c("ang accel sqr", "ang jerk sqr", "cartes accel sqr", "cartes jerk sqr", 
+                   "torqs sqr", "torqs abs", "torqs rate sqr","torqs rate abs", "torq 2nd rate sqr", "torq 2nd rate abs",
+                   "yGRF rate sqr", "xGRF rate sqr", "pos work", "abs work",
+                   "peak kinetic energy", "pk2pk ang momentum")
+
+par(mfrow=c(1,8),mar=c(8, 10, 2, 2))
+i=1
+bar.plt <- barplot(Loadings_spcr[,i],
+                   main = paste("PC ", i, "\n Cum VAF=", format(VAF_spcr_sorted[i], digits = 2)),
+                   ylab = "Criteria",
+                   names.arg = Criteria.Names,
+                   col = "darkred",
+                   las = 2,
+                   horiz = TRUE,
+                   cex.lab = 1.7,
+                   cex.axis = 1.2,
+                   cex.names = 1.0)
+
+for(i in seq(2,8,1)){
+  
+  bar.plt <- barplot(Loadings_spcr[,i],
+                     main = paste("PC ", i, "\n Cum VAF=", format(VAF_spcr_sorted[i], digits = 2)),
+                     col = "darkred",
+                     las = 2,
+                     horiz = TRUE,
+                     cex.lab = 1.7,
+                     cex.axis = 1.2,
+                     cex.names = 1.0)
+  
+  #subplot(bar.plt, nrows = 2, margin = 0.05)
+}
+
+mtext("Loadings of criteria on each PC",1)
+
+
+
+
+xlab = "Loadings of criteria on each PC"
+
+i=8
+bar.plt <- barplot(matrix(0L, nrow = N.Comp, ncol = 1),
+                   main = paste("PC ", i, "\n Cum VAF=", format(VAF_spcr_sorted[i], digits = 2)),
+                   ylab = "Criteria",
+                   names.arg = Criteria.Names,
+                   col = "darkred",
+                   las = 2,
+                   horiz = TRUE,
+                   cex.lab = 1.7,
+                   cex.axis = 1.2,
+                   cex.names = 1.0)
+mtext("Number of links",4)
+
+
+
+
+
+################## Sparse visualization loading<.30 -> 0
+par(mfrow=c(1,8),mar=c(8, 10, 2, 2))
+i=1
+bar.plt <- barplot(Loadings_spcr.cut[,i],
+                   main = paste("PC ", i, "\n Cum VAF=", format(VAF_spcr_sorted[i], digits = 2)),
+                   ylab = "Criteria",
+                   names.arg = Criteria.Names,
+                   col = "darkred",
+                   las = 2,
+                   horiz = TRUE,
+                   cex.lab = 1.7,
+                   cex.axis = 1.2,
+                   cex.names = 1.0)
+
+for(i in seq(2,8,1)){
+  
+  bar.plt <- barplot(Loadings_spcr.cut[,i],
+                     main = paste("PC ", i, "\n Cum VAF=", format(VAF_spcr_sorted[i], digits = 2)),
+                     col = "darkred",
+                     las = 2,
+                     horiz = TRUE,
+                     cex.lab = 1.7,
+                     cex.axis = 1.2,
+                     cex.names = 1.0)
+  
+  #subplot(bar.plt, nrows = 2, margin = 0.05)
+}
+
+mtext("Loadings of criteria on each PC",1)
+
+
+X = scale(X, center = TRUE, scale = TRUE)
+
+# perform k-fold cross-validation to find optimal lambda value
+cv_model <- cv.glmnet(X, y, alpha = 1)
+# find optimal lambda value that minimizes test MSE
+best_lambda <- cv_model$lambda.min
+# Lasso on X and y
+best_model <- glmnet(X, y, alpha = 1, lambda = best_lambda, standardize = FALSE)
+Lasso_Coefficients_DTW = matrix(best_model$beta)
+best_model$beta
+
+
+for (i in 1:10){
+  ## LASSO FOR DTW MEASURE ##
+  X = Features.Matrix[[i]][[1]]
+  y = DTW.Vector[[i]][[1]]
+  
+  X = scale(X, center = TRUE, scale = TRUE)
+  #  y1 = scale(y, center = FALSE, scale = TRUE)
+  
+  
+  #  library(dplyr)
+  #  as.matrix(X) %>% summarise_if(is.numeric, max)
+  
+  
+  
+  # perform k-fold cross-validation to find optimal lambda value
+  cv_model <- cv.glmnet(X, y, alpha = 1)
+  # find optimal lambda value that minimizes test MSE
+  best_lambda <- cv_model$lambda.min
+  # Lasso on X and y
+  best_model <- glmnet(X, y, alpha = 1, lambda = best_lambda, standardize = FALSE)
+  Lasso_Coefficients_DTW[,i] = matrix(best_model$beta)
+  
+  #  grid=10^seq(10,-4, length =100)
+  #  out=glmnet (X,y,alpha=1, lambda=grid)
+  #  lasso.coef=predict (out ,type=" coefficients",s= best_lambda)
+  
+  
+  
+  ## LASSO FOR RMS MEASURE ##
+  y = RMSE.Vector[[i]][[1]]
+  #  y = scale(y, center = TRUE, scale = TRUE)
+  
+  # perform k-fold cross-validation to find optimal lambda value
+  cv_model <- cv.glmnet(X, y, alpha = 1)
+  # find optimal lambda value that minimizes test MSE
+  best_lambda <- cv_model$lambda.min
+  # Lasso on X and y
+  best_model <- glmnet(X, y, alpha = 1, lambda = best_lambda, standardize = FALSE)
+  Lasso_Coefficients_RMS[,i] = matrix(best_model$beta)
+  
+  
+}
+
+
+
+
